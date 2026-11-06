@@ -1,0 +1,26 @@
+{
+  "name": "shopkart",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Shopkart E-Commerce Microservices Platform",
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "database"
+  ],
+  "scripts": {
+    "build": "npm run --workspaces --if-present build",
+    "test": "npm run --workspaces --if-present test",
+    "lint": "npm run --workspaces --if-present lint",
+    "db:format": "npm run --prefix database db:format",
+    "db:validate": "npm run --prefix database db:validate",
+    "db:generate": "npm run --prefix database db:generate",
+    "db:migrate": "npm run --prefix database db:migrate",
+    "db:studio": "npm run --prefix database db:studio",
+    "db:seed": "npm run --prefix database db:seed"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3"
+  },
+  "allowScripts": {}
+}

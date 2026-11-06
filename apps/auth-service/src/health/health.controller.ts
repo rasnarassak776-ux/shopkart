@@ -1,0 +1,17 @@
+import { Controller, Get } from '@nestjs/common';
+import { HealthService } from './health.service';
+
+@Controller('health')
+export class HealthController {
+  constructor(private readonly healthService: HealthService) {}
+
+  @Get()
+  async getHealth() {
+    return this.healthService.checkHealth();
+  }
+
+  @Get('db-verify')
+  async verifyDatabase() {
+    return this.healthService.verifyDatabaseIntegration();
+  }
+}
