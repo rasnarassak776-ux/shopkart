@@ -81,8 +81,8 @@ export const presentationCategories: CategorySummary[] = [
 
 export const presentationFeaturedProducts: ProductSummary[] = [
   {
-    id: 'demo-aurora-headphones',
-    href: PLACEHOLDER_HREF,
+    id: '20000000-0000-4000-8000-000000000001',
+    href: '/products/20000000-0000-4000-8000-000000000001',
     brand: 'Aurora',
     name: 'Aurora Wireless Over-Ear Headphones with Active Noise Cancelling',
     price: 4999,
@@ -93,8 +93,8 @@ export const presentationFeaturedProducts: ProductSummary[] = [
     image: { src: unsplash('1505740420928-5e560c06d30e'), alt: 'Black wireless headphones on a yellow background' },
   },
   {
-    id: 'demo-strata-watch',
-    href: PLACEHOLDER_HREF,
+    id: '20000000-0000-4000-8000-000000000002',
+    href: '/products/20000000-0000-4000-8000-000000000002',
     brand: 'Strata',
     name: 'Strata Minimal Analog Watch, 40mm Silicone Strap',
     price: 3299,
@@ -104,8 +104,8 @@ export const presentationFeaturedProducts: ProductSummary[] = [
     image: { src: unsplash('1523275335684-37898b6baf30'), alt: 'White minimalist analog wristwatch' },
   },
   {
-    id: 'demo-stride-runner',
-    href: PLACEHOLDER_HREF,
+    id: '20000000-0000-4000-8000-000000000003',
+    href: '/products/20000000-0000-4000-8000-000000000003',
     brand: 'Stride',
     name: 'Stride Knit Lightweight Running Shoes',
     price: 2799,
@@ -116,8 +116,8 @@ export const presentationFeaturedProducts: ProductSummary[] = [
     image: { src: unsplash('1491553895911-0055eca6402d'), alt: 'Grey knit running shoe on a white background' },
   },
   {
-    id: 'demo-pulse-smartwatch',
-    href: PLACEHOLDER_HREF,
+    id: '20000000-0000-4000-8000-000000000004',
+    href: '/products/20000000-0000-4000-8000-000000000004',
     brand: 'Pulse',
     name: 'Pulse Fit Smartwatch with AMOLED Display & SpO2 Tracking',
     price: 6499,
@@ -127,8 +127,8 @@ export const presentationFeaturedProducts: ProductSummary[] = [
     image: { src: unsplash('1546868871-7041f2a55e12'), alt: 'Black smartwatch with a vivid watch face' },
   },
   {
-    id: 'demo-nomad-backpack',
-    href: PLACEHOLDER_HREF,
+    id: '20000000-0000-4000-8000-000000000005',
+    href: '/products/20000000-0000-4000-8000-000000000005',
     brand: 'Nomad',
     name: 'Nomad Everyday Backpack 24L, Water-Resistant',
     price: 1899,
@@ -139,8 +139,8 @@ export const presentationFeaturedProducts: ProductSummary[] = [
     image: { src: unsplash('1553062407-98eeb64c6a62'), alt: 'Navy blue backpack against a light wall' },
   },
   {
-    id: 'demo-halo-lamp',
-    href: PLACEHOLDER_HREF,
+    id: '20000000-0000-4000-8000-000000000006',
+    href: '/products/20000000-0000-4000-8000-000000000006',
     brand: 'Halo Home',
     name: 'Halo Adjustable Metal Desk Lamp',
     price: 1499,
@@ -150,8 +150,8 @@ export const presentationFeaturedProducts: ProductSummary[] = [
     image: { src: unsplash('1507473885765-e6ed057f782c'), alt: 'Grey adjustable desk lamp' },
   },
   {
-    id: 'demo-coast-sunglasses',
-    href: PLACEHOLDER_HREF,
+    id: '20000000-0000-4000-8000-000000000007',
+    href: '/products/20000000-0000-4000-8000-000000000007',
     brand: 'Coast',
     name: 'Coast Classic Polarised Sunglasses',
     price: 1299,
@@ -161,8 +161,8 @@ export const presentationFeaturedProducts: ProductSummary[] = [
     image: { src: unsplash('1572635196237-14b3f281503f'), alt: 'Black classic sunglasses on a white background' },
   },
   {
-    id: 'demo-studio-headphones',
-    href: PLACEHOLDER_HREF,
+    id: '20000000-0000-4000-8000-000000000008',
+    href: '/products/20000000-0000-4000-8000-000000000008',
     brand: 'Aurora',
     name: 'Studio Pro Wired Monitor Headphones',
     price: 8999,
@@ -175,8 +175,8 @@ export const presentationFeaturedProducts: ProductSummary[] = [
 
 export const presentationNewArrivals: ProductSummary[] = [
   {
-    id: 'demo-ellis-sofa',
-    href: PLACEHOLDER_HREF,
+    id: '20000000-0000-4000-8000-000000000009',
+    href: '/products/20000000-0000-4000-8000-000000000009',
     brand: 'Ellis & Co.',
     name: 'Ellis Velvet 3-Seater Sofa, Forest Green',
     price: 32999,
@@ -187,8 +187,8 @@ export const presentationNewArrivals: ProductSummary[] = [
     image: { src: unsplash('1555041469-a586c61ea9bc'), alt: 'Green velvet three-seater sofa' },
   },
   {
-    id: 'demo-cove-chair',
-    href: PLACEHOLDER_HREF,
+    id: '20000000-0000-4000-8000-000000000010',
+    href: '/products/20000000-0000-4000-8000-000000000010',
     brand: 'Ellis & Co.',
     name: 'Cove Upholstered Accent Chair',
     price: 8499,
@@ -198,8 +198,8 @@ export const presentationNewArrivals: ProductSummary[] = [
     image: { src: unsplash('1567538096630-e0c55bd6374c'), alt: 'Cream upholstered accent chair' },
   },
   {
-    id: 'demo-prism-sneakers',
-    href: PLACEHOLDER_HREF,
+    id: '20000000-0000-4000-8000-000000000011',
+    href: '/products/20000000-0000-4000-8000-000000000011',
     brand: 'Stride',
     name: 'Prism Street Sneakers, Multicolour',
     price: 3499,
@@ -209,8 +209,8 @@ export const presentationNewArrivals: ProductSummary[] = [
     image: { src: unsplash('1560769629-975ec94e6a86'), alt: 'Multicolour street sneakers' },
   },
   {
-    id: 'demo-essential-tee',
-    href: PLACEHOLDER_HREF,
+    id: '20000000-0000-4000-8000-000000000012',
+    href: '/products/20000000-0000-4000-8000-000000000012',
     brand: 'Basics Lab',
     name: 'Essential Heavyweight Cotton Graphic Tee',
     price: 799,

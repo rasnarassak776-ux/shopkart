@@ -21,6 +21,8 @@ dist/
 build/
 .next/
 out/
+coverage/
+*.lcov
 
 # Monorepo / Tooling
 .turbo

@@ -6,3 +6,4 @@ export * from './layout-primitives';
 export * from './price';
 export * from './rating';
 export * from './skeleton';
+export * from './toast';
