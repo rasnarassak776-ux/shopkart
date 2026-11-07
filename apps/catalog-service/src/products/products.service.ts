@@ -1,7 +1,15 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { QueryProductsDto } from './dto/query-products.dto';
+import {
+  QueryProductsDto,
+  ProductSortField,
+  ProductSortOrder,
+} from './dto/query-products.dto';
 
 const productInclude = {
   category: {
@@ -24,25 +32,25 @@ export class ProductsService {
       .replace(/^-+|-+$/g, '');
   }
 
-  async findAll(query: QueryProductsDto) {
-    const page = query.page && query.page > 0 ? query.page : 1;
-    const limit = query.limit && query.limit > 0 ? query.limit : 20;
-    const skip = (page - 1) * limit;
-
-    const where: Prisma.ProductWhereInput = {};
+  private buildWhere(query: QueryProductsDto): Prisma.ProductWhereInput {
+    const where: Prisma.ProductWhereInput = {
+      // Customer-facing listing always excludes inactive products.
+      isActive: true,
+    };
 
     if (query.categoryId) {
       where.categoryId = query.categoryId;
     }
 
     if (query.brand) {
-      where.brand = { contains: query.brand, mode: 'insensitive' };
+      where.brand = { equals: query.brand, mode: 'insensitive' };
     }
 
-    if (query.isActive !== undefined) {
-      where.isActive = query.isActive;
-    } else {
-      where.isActive = true;
+    if (query.minPrice !== undefined || query.maxPrice !== undefined) {
+      where.price = {
+        ...(query.minPrice !== undefined ? { gte: query.minPrice } : {}),
+        ...(query.maxPrice !== undefined ? { lte: query.maxPrice } : {}),
+      };
     }
 
     if (query.search) {
@@ -54,13 +62,49 @@ export class ProductsService {
       ];
     }
 
+    return where;
+  }
+
+  private buildOrderBy(
+    sortBy?: ProductSortField,
+    sortOrder?: ProductSortOrder,
+  ): Prisma.ProductOrderByWithRelationInput[] {
+    const direction = sortOrder === 'asc' ? 'asc' : 'desc';
+    switch (sortBy) {
+      case 'price':
+        return [{ price: direction }, { id: 'asc' }];
+      case 'name':
+        return [{ name: direction }, { id: 'asc' }];
+      case 'createdAt':
+      default:
+        return [{ createdAt: direction }, { id: 'asc' }];
+    }
+  }
+
+  async findAll(query: QueryProductsDto) {
+    if (
+      query.minPrice !== undefined &&
+      query.maxPrice !== undefined &&
+      query.minPrice > query.maxPrice
+    ) {
+      throw new BadRequestException(
+        'minPrice must not be greater than maxPrice',
+      );
+    }
+
+    const page = query.page && query.page > 0 ? query.page : 1;
+    const limit = query.limit && query.limit > 0 ? query.limit : 12;
+    const skip = (page - 1) * limit;
+
+    const where = this.buildWhere(query);
+
     const [total, products] = await Promise.all([
       this.prisma.product.count({ where }),
       this.prisma.product.findMany({
         where,
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy: this.buildOrderBy(query.sortBy, query.sortOrder),
         include: productInclude,
       }),
     ]);
@@ -75,6 +119,19 @@ export class ProductsService {
       limit,
       totalPages: Math.ceil(total / limit),
     };
+  }
+
+  /** Distinct brands across active products, for filter UI options. */
+  async findBrands(): Promise<string[]> {
+    const rows = await this.prisma.product.findMany({
+      where: { isActive: true, brand: { not: null } },
+      select: { brand: true },
+      distinct: ['brand'],
+      orderBy: { brand: 'asc' },
+    });
+    return rows
+      .map((row) => row.brand)
+      .filter((brand): brand is string => Boolean(brand));
   }
 
   async findById(id: string) {

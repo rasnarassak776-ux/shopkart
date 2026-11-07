@@ -24,6 +24,12 @@ export class ProductsController {
   }
 
   @Public()
+  @Get('brands')
+  async findBrands() {
+    return this.productsService.findBrands();
+  }
+
+  @Public()
   @Get(':id')
   async findById(@Param('id', ParseUUIDPipe) id: string) {
     return this.productsService.findById(id);

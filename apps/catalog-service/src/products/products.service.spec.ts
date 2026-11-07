@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { QueryProductsDto } from './dto/query-products.dto';
@@ -60,7 +60,7 @@ describe('ProductsService', () => {
       expect(result.data).toHaveLength(1);
       expect(result.total).toBe(1);
       expect(result.page).toBe(1);
-      expect(result.limit).toBe(20);
+      expect(result.limit).toBe(12);
       expect(result.totalPages).toBe(1);
       expect(result.data[0].price).toBe('2499.00');
 
@@ -103,6 +103,212 @@ describe('ProductsService', () => {
 
       const where = prisma.product.findMany.mock.calls[0][0].where;
       expect(where.OR).toHaveLength(4);
+      expect(where.OR[0].name.contains).toBe('headphone');
+      expect(where.OR[0].name.mode).toBe('insensitive');
+      expect(where.OR[1].description.contains).toBe('headphone');
+    });
+
+    it('returns an empty result set when nothing matches', async () => {
+      prisma.product.count.mockResolvedValue(0);
+      prisma.product.findMany.mockResolvedValue([]);
+
+      const result = await service.findAll({
+        search: 'nonexistent-term',
+      } as QueryProductsDto);
+
+      expect(result.data).toEqual([]);
+      expect(result.total).toBe(0);
+      expect(result.totalPages).toBe(0);
+    });
+
+    it('always excludes inactive products', async () => {
+      prisma.product.count.mockResolvedValue(0);
+      prisma.product.findMany.mockResolvedValue([]);
+
+      await service.findAll({} as QueryProductsDto);
+
+      const where = prisma.product.findMany.mock.calls[0][0].where;
+      expect(where.isActive).toBe(true);
+    });
+
+    it('filters by minimum price', async () => {
+      prisma.product.count.mockResolvedValue(0);
+      prisma.product.findMany.mockResolvedValue([]);
+
+      await service.findAll({ minPrice: 500 } as QueryProductsDto);
+
+      const where = prisma.product.findMany.mock.calls[0][0].where;
+      expect(where.price).toEqual({ gte: 500 });
+    });
+
+    it('filters by maximum price', async () => {
+      prisma.product.count.mockResolvedValue(0);
+      prisma.product.findMany.mockResolvedValue([]);
+
+      await service.findAll({ maxPrice: 5000 } as QueryProductsDto);
+
+      const where = prisma.product.findMany.mock.calls[0][0].where;
+      expect(where.price).toEqual({ lte: 5000 });
+    });
+
+    it('filters by combined price range', async () => {
+      prisma.product.count.mockResolvedValue(0);
+      prisma.product.findMany.mockResolvedValue([]);
+
+      await service.findAll({
+        minPrice: 500,
+        maxPrice: 5000,
+      } as QueryProductsDto);
+
+      const where = prisma.product.findMany.mock.calls[0][0].where;
+      expect(where.price).toEqual({ gte: 500, lte: 5000 });
+    });
+
+    it('rejects minPrice greater than maxPrice', async () => {
+      await expect(
+        service.findAll({
+          minPrice: 5000,
+          maxPrice: 500,
+        } as QueryProductsDto),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('filters by brand case-insensitively', async () => {
+      prisma.product.count.mockResolvedValue(0);
+      prisma.product.findMany.mockResolvedValue([]);
+
+      await service.findAll({ brand: 'SoundMaster' } as QueryProductsDto);
+
+      const where = prisma.product.findMany.mock.calls[0][0].where;
+      expect(where.brand).toEqual({
+        equals: 'SoundMaster',
+        mode: 'insensitive',
+      });
+    });
+
+    it('combines search, category, price and brand filters', async () => {
+      prisma.product.count.mockResolvedValue(0);
+      prisma.product.findMany.mockResolvedValue([]);
+
+      await service.findAll({
+        search: 'phone',
+        categoryId: '10000000-0000-4000-8000-000000000001',
+        minPrice: 5000,
+        maxPrice: 50000,
+        brand: 'TechNova',
+      } as QueryProductsDto);
+
+      const where = prisma.product.findMany.mock.calls[0][0].where;
+      expect(where.isActive).toBe(true);
+      expect(where.categoryId).toBe('10000000-0000-4000-8000-000000000001');
+      expect(where.brand).toEqual({ equals: 'TechNova', mode: 'insensitive' });
+      expect(where.price).toEqual({ gte: 5000, lte: 50000 });
+      expect(where.OR).toHaveLength(4);
+    });
+
+    it('sorts by price ascending with id tiebreaker', async () => {
+      prisma.product.count.mockResolvedValue(0);
+      prisma.product.findMany.mockResolvedValue([]);
+
+      await service.findAll({
+        sortBy: 'price',
+        sortOrder: 'asc',
+      } as QueryProductsDto);
+
+      const orderBy = prisma.product.findMany.mock.calls[0][0].orderBy;
+      expect(orderBy).toEqual([{ price: 'asc' }, { id: 'asc' }]);
+    });
+
+    it('sorts by price descending', async () => {
+      prisma.product.count.mockResolvedValue(0);
+      prisma.product.findMany.mockResolvedValue([]);
+
+      await service.findAll({
+        sortBy: 'price',
+        sortOrder: 'desc',
+      } as QueryProductsDto);
+
+      const orderBy = prisma.product.findMany.mock.calls[0][0].orderBy;
+      expect(orderBy).toEqual([{ price: 'desc' }, { id: 'asc' }]);
+    });
+
+    it('sorts by name and createdAt', async () => {
+      prisma.product.count.mockResolvedValue(0);
+      prisma.product.findMany.mockResolvedValue([]);
+
+      await service.findAll({
+        sortBy: 'name',
+        sortOrder: 'asc',
+      } as QueryProductsDto);
+      expect(prisma.product.findMany.mock.calls[0][0].orderBy).toEqual([
+        { name: 'asc' },
+        { id: 'asc' },
+      ]);
+
+      await service.findAll({
+        sortBy: 'createdAt',
+        sortOrder: 'asc',
+      } as QueryProductsDto);
+      expect(prisma.product.findMany.mock.calls[1][0].orderBy).toEqual([
+        { createdAt: 'asc' },
+        { id: 'asc' },
+      ]);
+    });
+
+    it('defaults to newest first', async () => {
+      prisma.product.count.mockResolvedValue(0);
+      prisma.product.findMany.mockResolvedValue([]);
+
+      await service.findAll({} as QueryProductsDto);
+
+      const orderBy = prisma.product.findMany.mock.calls[0][0].orderBy;
+      expect(orderBy).toEqual([{ createdAt: 'desc' }, { id: 'asc' }]);
+    });
+
+    it('uses the same filters for count and findMany', async () => {
+      prisma.product.count.mockResolvedValue(3);
+      prisma.product.findMany.mockResolvedValue([]);
+
+      const query = {
+        search: 'lamp',
+        minPrice: 100,
+        page: 2,
+        limit: 12,
+      } as QueryProductsDto;
+      await service.findAll(query);
+
+      const countWhere = prisma.product.count.mock.calls[0][0].where;
+      const findWhere = prisma.product.findMany.mock.calls[0][0].where;
+      expect(countWhere).toEqual(findWhere);
+      expect(prisma.product.findMany.mock.calls[0][0].skip).toBe(12);
+      expect(prisma.product.findMany.mock.calls[0][0].take).toBe(12);
+    });
+  });
+
+  describe('findBrands', () => {
+    it('returns distinct active product brands', async () => {
+      prisma.product.findMany.mockResolvedValue([
+        { brand: 'SoundMaster' },
+        { brand: 'TechNova' },
+      ]);
+
+      const result = await service.findBrands();
+
+      expect(result).toEqual(['SoundMaster', 'TechNova']);
+      const args = prisma.product.findMany.mock.calls[0][0];
+      expect(args.where.isActive).toBe(true);
+      expect(args.distinct).toEqual(['brand']);
+    });
+
+    it('filters out null brands', async () => {
+      prisma.product.findMany.mockResolvedValue([
+        { brand: 'GlowLab' },
+        { brand: null },
+      ]);
+
+      const result = await service.findBrands();
+
+      expect(result).toEqual(['GlowLab']);
     });
   });
 

@@ -28,6 +28,26 @@ export function ProductEmptyState({
   );
 }
 
+export function SearchEmptyState({
+  query,
+  onClear,
+}: {
+  query: string;
+  onClear: () => void;
+}) {
+  return (
+    <div className="flex flex-col items-center rounded-xl border border-dashed border-line bg-surface px-6 py-16 text-center">
+      <h2 className={cn(textStyles.h3, 'text-ink')}>No results for &ldquo;{query}&rdquo;</h2>
+      <p className={cn(textStyles.bodySm, 'mt-2 max-w-sm')}>
+        Try a different search term, or remove some filters to see more products.
+      </p>
+      <Button variant="secondary" size="sm" className="mt-6" onClick={onClear}>
+        Clear search
+      </Button>
+    </div>
+  );
+}
+
 export function ProductErrorState({
   message = 'We could not load products right now. Please try again later.',
   onRetry,

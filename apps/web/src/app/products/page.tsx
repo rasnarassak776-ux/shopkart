@@ -8,11 +8,11 @@ export const metadata = {
 export default function ProductsPage({
   searchParams,
 }: {
-  searchParams?: { category?: string };
+  searchParams?: Record<string, string | string[] | undefined>;
 }) {
   return (
     <Container className="py-8 sm:py-12">
-      <CatalogBrowser categoryParam={searchParams?.category ?? null} />
+      <CatalogBrowser searchParams={searchParams ?? {}} />
     </Container>
   );
 }

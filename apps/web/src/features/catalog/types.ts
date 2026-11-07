@@ -58,11 +58,17 @@ export interface CatalogCategory {
   _count: { products: number };
 }
 
+export type CatalogSortBy = 'price' | 'name' | 'createdAt';
+export type CatalogSortOrder = 'asc' | 'desc';
+
 export interface CatalogProductQuery {
   page?: number;
   limit?: number;
   categoryId?: string;
   search?: string;
   brand?: string;
-  isActive?: boolean;
+  minPrice?: number;
+  maxPrice?: number;
+  sortBy?: CatalogSortBy;
+  sortOrder?: CatalogSortOrder;
 }

@@ -12,6 +12,8 @@ export type {
   CatalogProductImage,
   CatalogProductQuery,
   CatalogProductsResponse,
+  CatalogSortBy,
+  CatalogSortOrder,
 } from './types';
 
 const CATALOG_API_URL = (
@@ -51,6 +53,16 @@ export async function getCatalogProduct(
 ): Promise<CatalogProduct> {
   return apiClient<CatalogProduct>(
     `${CATALOG_API_URL}/api/v1/catalog/products/${encodeURIComponent(id)}`,
+    init,
+  );
+}
+
+/** Fetches distinct brands across active products for filter options. */
+export async function getCatalogBrands(
+  init?: RequestInit,
+): Promise<string[]> {
+  return apiClient<string[]>(
+    `${CATALOG_API_URL}/api/v1/catalog/products/brands`,
     init,
   );
 }
