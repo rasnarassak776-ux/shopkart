@@ -41,7 +41,7 @@ export function ProtectedRoute({
   if (isLoading) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center p-4">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent" />
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-accent-600 border-t-transparent" />
         <p className="mt-4 text-sm font-medium text-gray-600">
           Verifying authentication session...
         </p>
@@ -72,7 +72,7 @@ export function ProtectedRoute({
         </p>
         <button
           onClick={() => router.push(user.role === 'admin' ? '/admin/dashboard' : '/customer/dashboard')}
-          className="mt-6 inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500"
+          className="mt-6 inline-flex items-center rounded-md bg-accent-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-accent-700"
         >
           Return to Dashboard
         </button>

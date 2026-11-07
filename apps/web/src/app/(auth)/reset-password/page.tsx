@@ -15,7 +15,7 @@ function ResetPasswordFallback() {
       <div className="space-y-4">
         <div className="h-10 bg-gray-100 rounded"></div>
         <div className="h-10 bg-gray-100 rounded"></div>
-        <div className="h-10 bg-indigo-200 rounded"></div>
+        <div className="h-10 bg-accent-200 rounded"></div>
       </div>
     </div>
   );

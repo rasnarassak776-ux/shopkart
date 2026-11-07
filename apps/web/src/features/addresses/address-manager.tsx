@@ -236,7 +236,7 @@ export function AddressManager() {
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold text-gray-900">Saved Addresses</h1>
-            <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
+            <span className="inline-flex items-center rounded-full bg-accent-50 px-2.5 py-0.5 text-xs font-semibold text-accent-700">
               Address Book ({addresses.length})
             </span>
           </div>
@@ -247,14 +247,14 @@ export function AddressManager() {
         <div className="flex items-center gap-3">
           <Link
             href="/customer/dashboard"
-            className="text-sm font-semibold text-indigo-600 hover:text-indigo-500"
+            className="text-sm font-semibold text-accent-600 hover:text-accent-700"
           >
             ← Back to Dashboard
           </Link>
           {!showForm && (
             <button
               onClick={handleAddNew}
-              className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500"
+              className="rounded-lg bg-accent-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-accent-700"
             >
               + Add New Address
             </button>
@@ -291,7 +291,7 @@ export function AddressManager() {
                   value={formData.fullName}
                   onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                   disabled={isSubmitting}
-                  className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
                   placeholder="Recipient Name"
                   required
                 />
@@ -304,7 +304,7 @@ export function AddressManager() {
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   disabled={isSubmitting}
-                  className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
                   placeholder="+91 9876543210"
                   required
                 />
@@ -318,7 +318,7 @@ export function AddressManager() {
                 value={formData.addressLine1}
                 onChange={(e) => setFormData({ ...formData, addressLine1: e.target.value })}
                 disabled={isSubmitting}
-                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
                 placeholder="Street address, P.O. box, company name"
                 required
               />
@@ -333,7 +333,7 @@ export function AddressManager() {
                 value={formData.addressLine2}
                 onChange={(e) => setFormData({ ...formData, addressLine2: e.target.value })}
                 disabled={isSubmitting}
-                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
                 placeholder="Apartment, suite, unit, building, floor"
               />
             </div>
@@ -346,7 +346,7 @@ export function AddressManager() {
                   value={formData.city}
                   onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                   disabled={isSubmitting}
-                  className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
                   placeholder="City / Town"
                   required
                 />
@@ -359,7 +359,7 @@ export function AddressManager() {
                   value={formData.state}
                   onChange={(e) => setFormData({ ...formData, state: e.target.value })}
                   disabled={isSubmitting}
-                  className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
                   placeholder="State"
                   required
                 />
@@ -372,7 +372,7 @@ export function AddressManager() {
                   value={formData.postalCode}
                   onChange={(e) => setFormData({ ...formData, postalCode: e.target.value })}
                   disabled={isSubmitting}
-                  className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
                   placeholder="PIN / Postal Code"
                   required
                 />
@@ -387,7 +387,7 @@ export function AddressManager() {
                   value={formData.country}
                   onChange={(e) => setFormData({ ...formData, country: e.target.value })}
                   disabled={isSubmitting}
-                  className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
                   placeholder="Country"
                 />
               </div>
@@ -399,7 +399,7 @@ export function AddressManager() {
                     checked={formData.isDefault}
                     onChange={(e) => setFormData({ ...formData, isDefault: e.target.checked })}
                     disabled={isSubmitting}
-                    className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
+                    className="h-4 w-4 rounded border-gray-300 text-accent-600 focus:ring-accent-600"
                   />
                   <span className="ml-2 text-sm text-gray-700 font-medium">
                     Set as default shipping address
@@ -420,7 +420,7 @@ export function AddressManager() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="rounded-lg bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 disabled:opacity-60"
+                className="rounded-lg bg-accent-600 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-accent-700 disabled:opacity-60"
               >
                 {isSubmitting ? 'Saving Address...' : editingId ? 'Update Address' : 'Save Address'}
               </button>
@@ -432,7 +432,7 @@ export function AddressManager() {
       {/* Address List Display */}
       {isLoading ? (
         <div className="flex justify-center items-center py-16">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent" />
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-accent-600 border-t-transparent" />
           <span className="ml-3 text-sm text-gray-500">Loading addresses...</span>
         </div>
       ) : addresses.length === 0 ? (
@@ -449,7 +449,7 @@ export function AddressManager() {
           </p>
           <button
             onClick={handleAddNew}
-            className="inline-flex items-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500"
+            className="inline-flex items-center rounded-lg bg-accent-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-accent-700"
           >
             + Add Your First Address
           </button>
@@ -461,7 +461,7 @@ export function AddressManager() {
               key={address.id}
               className={`bg-white rounded-xl p-6 shadow-sm border relative transition-all ${
                 address.isDefault
-                  ? 'border-indigo-600 ring-2 ring-indigo-600/10'
+                  ? 'border-accent-600 ring-2 ring-accent-600/10'
                   : 'border-gray-200 hover:border-gray-300'
               }`}
             >
@@ -469,7 +469,7 @@ export function AddressManager() {
                 <div className="flex items-center gap-2">
                   <h3 className="text-base font-semibold text-gray-900">{address.fullName}</h3>
                   {address.isDefault && (
-                    <span className="inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-indigo-700 ring-1 ring-inset ring-indigo-600/20">
+                    <span className="inline-flex items-center rounded-full bg-accent-50 px-2 py-0.5 text-xs font-semibold text-accent-700 ring-1 ring-inset ring-accent-600/20">
                       Default Address
                     </span>
                   )}
@@ -492,7 +492,7 @@ export function AddressManager() {
                   {!address.isDefault && (
                     <button
                       onClick={() => handleSetDefault(address.id)}
-                      className="text-xs font-medium text-indigo-600 hover:text-indigo-500 underline"
+                      className="text-xs font-medium text-accent-600 hover:text-accent-700 underline"
                     >
                       Set as default
                     </button>

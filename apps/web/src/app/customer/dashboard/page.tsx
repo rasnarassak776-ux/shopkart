@@ -22,7 +22,7 @@ function CustomerDashboardContent() {
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold text-gray-900">Customer Dashboard</h1>
-            <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700 ring-1 ring-inset ring-blue-700/10">
+            <span className="inline-flex items-center rounded-full bg-accent-50 px-2.5 py-0.5 text-xs font-semibold text-accent-700 ring-1 ring-inset ring-accent-700/10">
               Customer Role
             </span>
           </div>
@@ -39,7 +39,7 @@ function CustomerDashboardContent() {
           </Link>
           <button
             onClick={handleLogout}
-            className="rounded-lg bg-red-600 px-3.5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500"
+            className="rounded-lg bg-white px-3.5 py-2 text-sm font-semibold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
           >
             Sign out
           </button>
@@ -90,7 +90,7 @@ function CustomerDashboardContent() {
                 className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 text-gray-700 font-medium group"
               >
                 <span>Manage Profile</span>
-                <span className="text-gray-400 group-hover:text-indigo-600">→</span>
+                <span className="text-gray-400 group-hover:text-accent-600">→</span>
               </Link>
             </li>
             <li>
@@ -99,7 +99,7 @@ function CustomerDashboardContent() {
                 className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 text-gray-700 font-medium group"
               >
                 <span>Saved Addresses</span>
-                <span className="text-gray-400 group-hover:text-indigo-600">→</span>
+                <span className="text-gray-400 group-hover:text-accent-600">→</span>
               </Link>
             </li>
           </ul>

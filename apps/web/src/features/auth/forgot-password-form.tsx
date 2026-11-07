@@ -106,13 +106,13 @@ export function ForgotPasswordForm() {
                 setIsSubmitted(false);
                 setEmail('');
               }}
-              className="text-sm font-medium text-indigo-600 hover:text-indigo-500 text-center"
+              className="text-sm font-medium text-accent-600 hover:text-accent-700 text-center"
             >
               Send another link
             </button>
             <Link
               href="/login"
-              className="w-full inline-flex justify-center rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+              className="w-full inline-flex justify-center rounded-lg bg-accent-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-accent-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600"
             >
               Return to Sign In
             </Link>
@@ -140,7 +140,7 @@ export function ForgotPasswordForm() {
                 className={`block w-full rounded-lg border px-3.5 py-2.5 text-gray-900 shadow-sm placeholder:text-gray-400 focus:outline-none sm:text-sm ${
                   fieldError
                     ? 'border-red-300 focus:border-red-500 focus:ring-1 focus:ring-red-500'
-                    : 'border-gray-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500'
+                    : 'border-gray-300 focus:border-accent-500 focus:ring-1 focus:ring-accent-500'
                 } ${isSubmitting ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : ''}`}
                 placeholder="name@example.com"
               />
@@ -155,7 +155,7 @@ export function ForgotPasswordForm() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full flex justify-center items-center rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+            className="w-full flex justify-center items-center rounded-lg bg-accent-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-accent-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
           >
             {isSubmitting ? (
               <>
@@ -173,7 +173,7 @@ export function ForgotPasswordForm() {
           <div className="text-center pt-2">
             <Link
               href="/login"
-              className="text-sm font-medium text-indigo-600 hover:text-indigo-500"
+              className="text-sm font-medium text-accent-600 hover:text-accent-700"
             >
               ← Back to Sign In
             </Link>

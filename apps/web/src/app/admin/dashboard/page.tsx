@@ -22,7 +22,7 @@ function AdminDashboardContent() {
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold text-gray-900">Admin Console Dashboard</h1>
-            <span className="inline-flex items-center rounded-full bg-purple-50 px-2.5 py-0.5 text-xs font-semibold text-purple-700 ring-1 ring-inset ring-purple-700/10">
+            <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-900 ring-1 ring-inset ring-gray-900/10">
               Administrator Role
             </span>
           </div>
@@ -39,7 +39,7 @@ function AdminDashboardContent() {
           </Link>
           <button
             onClick={handleLogout}
-            className="rounded-lg bg-red-600 px-3.5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500"
+            className="rounded-lg bg-white px-3.5 py-2 text-sm font-semibold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
           >
             Sign out
           </button>
@@ -63,7 +63,7 @@ function AdminDashboardContent() {
             </div>
             <div>
               <dt className="text-gray-500 font-medium">Security Role</dt>
-              <dd className="mt-1 font-semibold text-purple-700 capitalize">{user?.role}</dd>
+              <dd className="mt-1 font-semibold text-gray-900 capitalize">{user?.role}</dd>
             </div>
             <div>
               <dt className="text-gray-500 font-medium">Admin ID (UUID)</dt>
@@ -86,13 +86,13 @@ function AdminDashboardContent() {
             </li>
             <li className="flex items-center justify-between text-gray-700">
               <span>RBAC Status</span>
-              <span className="inline-flex items-center text-xs font-medium text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full">
+              <span className="inline-flex items-center text-xs font-medium text-gray-900 bg-gray-100 px-2 py-0.5 rounded-full">
                 RolesGuard Active
               </span>
             </li>
             <li className="flex items-center justify-between text-gray-700">
               <span>Session Storage</span>
-              <span className="inline-flex items-center text-xs font-medium text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full">
+              <span className="inline-flex items-center text-xs font-medium text-accent-700 bg-accent-50 px-2 py-0.5 rounded-full">
                 Redis 7 (Port 6379)
               </span>
             </li>

@@ -128,7 +128,7 @@ export function RegisterForm() {
           Already have an account?{' '}
           <Link
             href="/login"
-            className="font-medium text-indigo-600 hover:text-indigo-500 hover:underline"
+            className="font-medium text-accent-600 hover:text-accent-700 hover:underline"
           >
             Sign in here
           </Link>
@@ -202,7 +202,7 @@ export function RegisterForm() {
               className={`block w-full rounded-lg border px-3.5 py-2.5 text-gray-900 shadow-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 sm:text-sm ${
                 fieldErrors.name
                   ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
-                  : 'border-gray-300 focus:border-indigo-600 focus:ring-indigo-600'
+                  : 'border-gray-300 focus:border-accent-600 focus:ring-accent-600'
               } disabled:bg-gray-100 disabled:cursor-not-allowed`}
               placeholder="Jane Doe"
             />
@@ -234,7 +234,7 @@ export function RegisterForm() {
               className={`block w-full rounded-lg border px-3.5 py-2.5 text-gray-900 shadow-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 sm:text-sm ${
                 fieldErrors.email
                   ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
-                  : 'border-gray-300 focus:border-indigo-600 focus:ring-indigo-600'
+                  : 'border-gray-300 focus:border-accent-600 focus:ring-accent-600'
               } disabled:bg-gray-100 disabled:cursor-not-allowed`}
               placeholder="jane@example.com"
             />
@@ -266,7 +266,7 @@ export function RegisterForm() {
               className={`block w-full rounded-lg border px-3.5 py-2.5 text-gray-900 shadow-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 sm:text-sm ${
                 fieldErrors.phone
                   ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
-                  : 'border-gray-300 focus:border-indigo-600 focus:ring-indigo-600'
+                  : 'border-gray-300 focus:border-accent-600 focus:ring-accent-600'
               } disabled:bg-gray-100 disabled:cursor-not-allowed`}
               placeholder="+91 9876543210"
             />
@@ -298,7 +298,7 @@ export function RegisterForm() {
               className={`block w-full rounded-lg border px-3.5 py-2.5 pr-10 text-gray-900 shadow-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 sm:text-sm ${
                 fieldErrors.password
                   ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
-                  : 'border-gray-300 focus:border-indigo-600 focus:ring-indigo-600'
+                  : 'border-gray-300 focus:border-accent-600 focus:ring-accent-600'
               } disabled:bg-gray-100 disabled:cursor-not-allowed`}
               placeholder="••••••••"
             />
@@ -350,7 +350,7 @@ export function RegisterForm() {
               className={`block w-full rounded-lg border px-3.5 py-2.5 pr-10 text-gray-900 shadow-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 sm:text-sm ${
                 fieldErrors.confirmPassword
                   ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
-                  : 'border-gray-300 focus:border-indigo-600 focus:ring-indigo-600'
+                  : 'border-gray-300 focus:border-accent-600 focus:ring-accent-600'
               } disabled:bg-gray-100 disabled:cursor-not-allowed`}
               placeholder="••••••••"
             />
@@ -381,7 +381,7 @@ export function RegisterForm() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="flex w-full justify-center items-center rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-70 disabled:cursor-not-allowed"
+            className="flex w-full justify-center items-center rounded-lg bg-accent-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-accent-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600 disabled:opacity-70 disabled:cursor-not-allowed"
           >
             {isSubmitting ? (
               <>

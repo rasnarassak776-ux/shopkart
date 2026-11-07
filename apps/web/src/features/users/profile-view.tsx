@@ -171,7 +171,7 @@ export function ProfileView() {
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold text-gray-900">User Profile</h1>
-            <span className="inline-flex items-center rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-700 capitalize">
+            <span className="inline-flex items-center rounded-full bg-accent-50 px-2.5 py-0.5 text-xs font-semibold text-accent-700 capitalize">
               {user?.role} Role
             </span>
           </div>
@@ -181,7 +181,7 @@ export function ProfileView() {
         </div>
         <Link
           href={user?.role === 'admin' ? '/admin/dashboard' : '/customer/dashboard'}
-          className="text-sm font-semibold text-indigo-600 hover:text-indigo-500"
+          className="text-sm font-semibold text-accent-600 hover:text-accent-700"
         >
           ← Return to Dashboard
         </Link>
@@ -242,7 +242,7 @@ export function ProfileView() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 disabled={isUpdatingProfile}
-                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
                 placeholder="Jane Doe"
               />
             </div>
@@ -257,7 +257,7 @@ export function ProfileView() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={isUpdatingProfile}
-                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
                 placeholder="jane@example.com"
               />
             </div>
@@ -272,7 +272,7 @@ export function ProfileView() {
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 disabled={isUpdatingProfile}
-                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
                 placeholder="+91 9876543210"
               />
             </div>
@@ -280,7 +280,7 @@ export function ProfileView() {
             <button
               type="submit"
               disabled={isUpdatingProfile}
-              className="w-full rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 disabled:opacity-60"
+              className="w-full rounded-lg bg-accent-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-accent-700 disabled:opacity-60"
             >
               {isUpdatingProfile ? 'Saving Changes...' : 'Save Profile'}
             </button>
@@ -320,7 +320,7 @@ export function ProfileView() {
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
                   disabled={isChangingPassword}
-                  className="block w-full rounded-lg border border-gray-300 px-3 py-2 pr-10 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="block w-full rounded-lg border border-gray-300 px-3 py-2 pr-10 text-sm text-gray-900 shadow-sm focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
                   placeholder="••••••••"
                 />
                 <button
@@ -347,7 +347,7 @@ export function ProfileView() {
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   disabled={isChangingPassword}
-                  className="block w-full rounded-lg border border-gray-300 px-3 py-2 pr-10 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="block w-full rounded-lg border border-gray-300 px-3 py-2 pr-10 text-sm text-gray-900 shadow-sm focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
                   placeholder="••••••••"
                 />
                 <button
@@ -374,7 +374,7 @@ export function ProfileView() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 disabled={isChangingPassword}
-                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
                 placeholder="••••••••"
               />
             </div>

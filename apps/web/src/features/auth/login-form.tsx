@@ -87,7 +87,7 @@ export function LoginForm() {
           Or{' '}
           <Link
             href="/register"
-            className="font-medium text-indigo-600 hover:text-indigo-500 hover:underline"
+            className="font-medium text-accent-600 hover:text-accent-700 hover:underline"
           >
             create a new customer account
           </Link>
@@ -139,7 +139,7 @@ export function LoginForm() {
               className={`block w-full rounded-lg border px-3.5 py-2.5 text-gray-900 shadow-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 sm:text-sm ${
                 fieldErrors.email
                   ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
-                  : 'border-gray-300 focus:border-indigo-600 focus:ring-indigo-600'
+                  : 'border-gray-300 focus:border-accent-600 focus:ring-accent-600'
               } disabled:bg-gray-100 disabled:cursor-not-allowed`}
               placeholder="you@example.com"
             />
@@ -159,7 +159,7 @@ export function LoginForm() {
             </label>
             <Link
               href="/forgot-password"
-              className="text-xs font-medium text-indigo-600 hover:text-indigo-500 hover:underline"
+              className="text-xs font-medium text-accent-600 hover:text-accent-700 hover:underline"
             >
               Forgot password?
             </Link>
@@ -179,7 +179,7 @@ export function LoginForm() {
               className={`block w-full rounded-lg border px-3.5 py-2.5 pr-10 text-gray-900 shadow-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 sm:text-sm ${
                 fieldErrors.password
                   ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
-                  : 'border-gray-300 focus:border-indigo-600 focus:ring-indigo-600'
+                  : 'border-gray-300 focus:border-accent-600 focus:ring-accent-600'
               } disabled:bg-gray-100 disabled:cursor-not-allowed`}
               placeholder="••••••••"
             />
@@ -210,7 +210,7 @@ export function LoginForm() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="flex w-full justify-center items-center rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-70 disabled:cursor-not-allowed"
+            className="flex w-full justify-center items-center rounded-lg bg-accent-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-accent-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600 disabled:opacity-70 disabled:cursor-not-allowed"
           >
             {isSubmitting ? (
               <>

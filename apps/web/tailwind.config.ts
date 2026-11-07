@@ -1,4 +1,5 @@
 import type { Config } from 'tailwindcss';
+import { colors, fontFamily, maxWidth, radii, shadows } from './src/design-system/tokens';
 
 const config: Config = {
   content: [
@@ -6,9 +7,16 @@ const config: Config = {
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
     './src/features/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/design-system/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
-    extend: {},
+    extend: {
+      colors,
+      borderRadius: radii,
+      boxShadow: shadows,
+      fontFamily,
+      maxWidth,
+    },
   },
   plugins: [],
 };
