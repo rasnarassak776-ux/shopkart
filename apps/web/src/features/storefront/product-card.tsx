@@ -49,9 +49,11 @@ export function ProductCard({ product }: { product: ProductSummary }) {
             {product.name}
           </Link>
         </h3>
-        <div className="mt-2">
-          <Rating value={product.rating} count={product.reviewCount} />
-        </div>
+        {product.rating !== undefined && product.reviewCount !== undefined && (
+          <div className="mt-2">
+            <Rating value={product.rating} count={product.reviewCount} />
+          </div>
+        )}
         <Price amount={product.price} compareAt={product.compareAtPrice} className="mt-2.5" />
         <div className="mt-auto pt-3">
           <Button variant="secondary" size="sm" fullWidth className="relative z-10">

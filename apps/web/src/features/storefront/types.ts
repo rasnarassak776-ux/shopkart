@@ -26,8 +26,9 @@ export interface ProductSummary {
   name: string;
   price: number;
   compareAtPrice?: number;
-  rating: number;
-  reviewCount: number;
+  /** Optional — catalog products have no review data yet. */
+  rating?: number;
+  reviewCount?: number;
   badge?: ProductBadge;
   image: StorefrontImage;
 }
