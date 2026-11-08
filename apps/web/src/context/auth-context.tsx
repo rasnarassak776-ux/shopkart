@@ -66,6 +66,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const restoreSession = useCallback(async (): Promise<boolean> => {
     try {
+      // Check session storage first for seamless page reloads
+      if (typeof window !== 'undefined') {
+        const storedToken = sessionStorage.getItem('shopkart_auth_token');
+        const storedUser = sessionStorage.getItem('shopkart_auth_user');
+        if (storedToken && storedUser) {
+          try {
+            const parsedUser = JSON.parse(storedUser);
+            updateTokens(storedToken, parsedUser);
+            return true;
+          } catch {
+            sessionStorage.removeItem('shopkart_auth_token');
+            sessionStorage.removeItem('shopkart_auth_user');
+          }
+        }
+      }
+
       // 1. Call refresh endpoint using HttpOnly cookie
       const refreshRes = await apiClient<{
         success: boolean;
@@ -100,7 +116,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           role: meRes.user.role,
           phone: meRes.user.phone || null,
         };
-        setUser(restoredUser);
+        updateTokens(refreshRes.accessToken, restoredUser);
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('shopkart_auth_token', refreshRes.accessToken);
+          sessionStorage.setItem('shopkart_auth_user', JSON.stringify(restoredUser));
+        }
         return true;
       }
 
@@ -130,6 +150,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       updateTokens(response.accessToken, response.user);
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('shopkart_auth_token', response.accessToken);
+        sessionStorage.setItem('shopkart_auth_user', JSON.stringify(response.user));
+      }
       return response.user;
     },
     [updateTokens],
@@ -156,6 +180,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch {
       // Continue client cleanup even if network request fails
     } finally {
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('shopkart_auth_token');
+        sessionStorage.removeItem('shopkart_auth_user');
+      }
       updateTokens(null, null);
     }
   }, [updateTokens]);

@@ -23,7 +23,8 @@ export async function getStorefrontCatalog(): Promise<StorefrontCatalog> {
       categories: categories.map(toCategorySummary),
       products: products.data.map(toProductSummary),
     };
-  } catch {
+  } catch (err: any) {
+    console.warn('[storefront-data] Falling back to presentation data:', err?.message || err);
     return { categories: [], products: [] };
   }
 }

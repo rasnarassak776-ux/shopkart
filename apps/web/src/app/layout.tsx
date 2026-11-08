@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Inter, Plus_Jakarta_Sans } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/context/auth-context';
+import { CartProvider } from '@/features/cart';
 import { SiteFooter, SiteHeader } from '@/components/layout';
 import { colors } from '@/design-system/tokens';
 
@@ -31,11 +32,13 @@ export default function RootLayout({
     <html lang="en" className={`${sans.variable} ${display.variable}`}>
       <body className="antialiased min-h-screen flex flex-col bg-canvas text-ink">
         <AuthProvider>
-          <SiteHeader />
-          <main id="main-content" className="flex flex-1 flex-col">
-            {children}
-          </main>
-          <SiteFooter />
+          <CartProvider>
+            <SiteHeader />
+            <main id="main-content" className="flex flex-1 flex-col">
+              {children}
+            </main>
+            <SiteFooter />
+          </CartProvider>
         </AuthProvider>
       </body>
     </html>

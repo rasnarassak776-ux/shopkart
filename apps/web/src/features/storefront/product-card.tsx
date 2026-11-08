@@ -2,6 +2,7 @@ import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Badge, type BadgeVariant, Button, CartIcon, HeartIcon, Price, Rating } from '@/components/ui';
+import { AddToCartButton } from '@/features/cart';
 import { textStyles } from '@/design-system/text-styles';
 import { cn } from '@/lib/cn';
 import type { ProductBadge, ProductSummary } from './types';
@@ -56,10 +57,13 @@ export function ProductCard({ product }: { product: ProductSummary }) {
         )}
         <Price amount={product.price} compareAt={product.compareAtPrice} className="mt-2.5" />
         <div className="mt-auto pt-3">
-          <Button variant="secondary" size="sm" fullWidth className="relative z-10">
-            <CartIcon className="h-4 w-4" />
-            Add to cart
-          </Button>
+          <AddToCartButton
+            productId={product.id}
+            variant="secondary"
+            size="sm"
+            fullWidth
+            className="relative z-10"
+          />
         </div>
       </div>
     </article>

@@ -11,6 +11,7 @@ import { AccountMenu } from './account-menu';
 import { Logo } from './logo';
 import { MobileNav } from './mobile-nav';
 import { SearchBar } from './search-bar';
+import { useCart } from '@/features/cart';
 
 const utilityLinks = [
   { label: 'Help centre', href: PLACEHOLDER_HREF },
@@ -24,6 +25,7 @@ export function SiteHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
   const closeMenu = useCallback(() => setMenuOpen(false), []);
+  const { totalItems } = useCart();
 
   useEffect(() => {
     setMenuOpen(false);
@@ -73,9 +75,21 @@ export function SiteHeader() {
               <button type="button" aria-label="Wishlist" className={cn(iconButton, 'hidden sm:inline-flex')}>
                 <HeartIcon className="h-[22px] w-[22px]" />
               </button>
-              <button type="button" aria-label="Cart" className={iconButton}>
+              <Link
+                href="/cart"
+                aria-label={totalItems > 0 ? `Shopping cart with ${totalItems} items` : 'Shopping cart'}
+                className={iconButton}
+              >
                 <CartIcon className="h-[22px] w-[22px]" />
-              </button>
+                {totalItems > 0 && (
+                  <span
+                    className="absolute -right-0.5 -top-0.5 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-accent-600 px-1 text-[11px] font-bold text-white shadow-sm"
+                    aria-hidden="true"
+                  >
+                    {totalItems > 99 ? '99+' : totalItems}
+                  </span>
+                )}
+              </Link>
             </div>
           </div>
           <div className="pb-3 md:hidden">
