@@ -86,6 +86,15 @@ function CustomerDashboardContent() {
           <ul className="space-y-2 text-sm">
             <li>
               <Link
+                href="/customer/orders"
+                className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 text-gray-700 font-medium group"
+              >
+                <span>My Orders</span>
+                <span className="text-gray-400 group-hover:text-accent-600">→</span>
+              </Link>
+            </li>
+            <li>
+              <Link
                 href="/profile"
                 className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 text-gray-700 font-medium group"
               >

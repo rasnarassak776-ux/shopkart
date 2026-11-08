@@ -15,6 +15,7 @@ import {
 import { textStyles } from '@/design-system/text-styles';
 import { cn } from '@/lib/cn';
 import { useCart } from '@/features/cart';
+import { presentationFeaturedProducts } from '@/features/storefront/presentation-data';
 import { useCheckout } from '../checkout-context';
 import { placeOrder } from '../checkout-api';
 
@@ -80,11 +81,11 @@ export function CheckoutOrderReview() {
         idempotencyKey,
       });
 
-      // Synchronize cart state to reflect cart conversion
-      await refreshCart();
-
-      // Navigate to order confirmation
+      // Navigate to order confirmation first to prevent brief empty-cart flash on /checkout
       router.push(`/orders/${response.orderId}/confirmation`);
+
+      // Synchronize cart state in background to reflect cart conversion
+      void refreshCart();
     } catch (err: any) {
       setIsPlacingOrder(false);
       setPlaceOrderError(
@@ -125,9 +126,9 @@ export function CheckoutOrderReview() {
           >
             {/* Thumbnail */}
             <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-surface-muted border border-line flex items-center justify-center">
-              {item.imageUrl ? (
+              {item.imageUrl || presentationFeaturedProducts.find((p) => p.id === item.productId)?.image?.src ? (
                 <Image
-                  src={item.imageUrl}
+                  src={(item.imageUrl || presentationFeaturedProducts.find((p) => p.id === item.productId)?.image?.src)!}
                   alt={item.name}
                   fill
                   sizes="56px"
@@ -174,8 +175,12 @@ export function CheckoutOrderReview() {
           <span className="font-semibold text-ink">{formatCurrency(subtotal)}</span>
         </div>
         <div className="flex justify-between text-ink-secondary">
-          <span>Estimated Delivery</span>
+          <span>Delivery Charges</span>
           <span className="font-semibold text-emerald-700">FREE</span>
+        </div>
+        <div className="flex justify-between text-ink-muted text-[11px]">
+          <span>Estimated Delivery Time</span>
+          <span className="font-medium text-ink-secondary">2–4 business days</span>
         </div>
         <div className="border-t border-line pt-3 flex justify-between items-baseline">
           <span className={cn(textStyles.h3, 'text-ink')}>Total Amount</span>

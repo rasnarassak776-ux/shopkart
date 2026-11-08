@@ -14,6 +14,7 @@ import {
 } from '@/components/ui';
 import { textStyles } from '@/design-system/text-styles';
 import { cn } from '@/lib/cn';
+import { presentationFeaturedProducts } from '@/features/storefront/presentation-data';
 import type { CartItem } from '../types';
 
 interface CartItemRowProps {
@@ -70,9 +71,9 @@ export function CartItemRow({
     >
       {/* Product Image */}
       <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-lg bg-surface-muted border border-line/60 sm:h-28 sm:w-28">
-        {item.imageUrl && !imgError ? (
+        {(item.imageUrl || presentationFeaturedProducts.find((p) => p.id === item.productId)?.image?.src) && !imgError ? (
           <Image
-            src={item.imageUrl}
+            src={(item.imageUrl || presentationFeaturedProducts.find((p) => p.id === item.productId)?.image?.src)!}
             alt={item.name}
             fill
             sizes="112px"

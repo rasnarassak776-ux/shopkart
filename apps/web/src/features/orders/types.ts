@@ -21,28 +21,32 @@ export type PaymentStatus =
 
 export interface OrderItem {
   id: string;
-  orderId: string;
+  orderId?: string;
   productId: string;
-  productNameSnapshot: string;
+  name?: string;
+  productNameSnapshot?: string;
   quantity: number;
-  unitPriceSnapshot: string;
-  createdAt: string;
+  unitPrice?: string;
+  unitPriceSnapshot?: string;
+  totalPrice?: string;
+  imageUrl?: string;
+  createdAt?: string;
 }
 
 export interface Payment {
-  id: string;
-  orderId: string;
+  id?: string;
+  orderId?: string;
   paymentMethod: PaymentMethod;
   paymentStatus: PaymentStatus;
   amount: string;
   transactionReference?: string | null;
-  idempotencyKey: string;
-  createdAt: string;
+  idempotencyKey?: string;
+  createdAt?: string;
 }
 
 export interface OrderStatusHistory {
-  id: string;
-  orderId: string;
+  id?: string;
+  orderId?: string;
   status: OrderStatus;
   changedAt: string;
 }
@@ -52,10 +56,13 @@ export interface Order {
   userId: string;
   addressSnapshot: AddressSnapshot;
   totalAmount: string;
+  currency?: string;
+  itemCount?: number;
   status: OrderStatus;
   createdAt: string;
   updatedAt: string;
   items: OrderItem[];
+  payment?: Payment;
   payments?: Payment[];
   statusHistory?: OrderStatusHistory[];
 }
@@ -66,8 +73,18 @@ export interface QueryOrdersDto {
   limit?: number;
 }
 
+export interface OrderPaginationMetadata {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
+
 export interface PaginatedOrdersResponse {
   data: Order[];
+  pagination?: OrderPaginationMetadata;
   total: number;
   page: number;
   limit: number;

@@ -14,34 +14,11 @@ import {
 import { textStyles } from '@/design-system/text-styles';
 import { cn } from '@/lib/cn';
 import { getOrderById } from '../orders-api';
+import { formatCurrency, formatDate } from '../order-utils';
 import type { Order } from '../types';
 import { OrderLoadingSkeleton } from '../order-states';
 
-export function formatCurrency(amount: string | number): string {
-  const num = typeof amount === 'string' ? parseFloat(amount) : amount;
-  if (isNaN(num)) return '₹0.00';
-  return new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(num);
-}
-
-export function formatDate(dateString: string): string {
-  try {
-    return new Date(dateString).toLocaleDateString('en-IN', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  } catch {
-    return dateString;
-  }
-}
+export { formatCurrency, formatDate };
 
 export function OrderConfirmation({ orderId }: { orderId: string }) {
   const [order, setOrder] = useState<Order | null>(null);
@@ -208,15 +185,15 @@ export function OrderConfirmation({ orderId }: { orderId: string }) {
                     </div>
                     <div>
                       <h4 className="text-sm font-semibold text-ink line-clamp-1">
-                        {item.productNameSnapshot}
+                        {item.name || item.productNameSnapshot || 'Product'}
                       </h4>
                       <p className="text-xs text-ink-muted">
-                        Qty: {item.quantity} × {formatCurrency(item.unitPriceSnapshot)}
+                        Qty: {item.quantity} × {formatCurrency(item.unitPriceSnapshot || item.unitPrice || '0.00')}
                       </p>
                     </div>
                   </div>
                   <span className="text-sm font-bold text-ink shrink-0">
-                    {formatCurrency(parseFloat(item.unitPriceSnapshot) * item.quantity)}
+                    {formatCurrency(parseFloat(item.unitPriceSnapshot || item.unitPrice || '0') * item.quantity)}
                   </span>
                 </div>
               ))}

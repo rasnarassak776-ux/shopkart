@@ -19,6 +19,8 @@ export interface OrderResponse {
   userId: string;
   status: string;
   totalAmount: string;
+  currency?: string;
+  itemCount?: number;
   addressSnapshot: {
     fullName: string;
     phone: string;
@@ -34,4 +36,22 @@ export interface OrderResponse {
   statusHistory?: Array<{ status: string; changedAt: string }>;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface OrderPaginationMetadata {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
+
+export interface PaginatedOrdersResponse {
+  data: OrderResponse[];
+  pagination: OrderPaginationMetadata;
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
 }

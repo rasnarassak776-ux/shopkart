@@ -23,6 +23,8 @@ describe('OrdersService', () => {
     },
     order: {
       findUnique: jest.fn(),
+      findMany: jest.fn(),
+      count: jest.fn(),
       create: jest.fn(),
     },
     orderItem: {
@@ -361,6 +363,123 @@ describe('OrdersService', () => {
       await expect(
         service.getOrderById('user-123', 'order-123'),
       ).rejects.toThrow(ForbiddenException);
+    });
+  });
+
+  describe('getCustomerOrders', () => {
+    it('should return paginated orders for the authenticated customer', async () => {
+      const mockOrders = [
+        {
+          id: 'order-1',
+          userId: 'user-123',
+          status: OrderStatus.PENDING,
+          totalAmount: new Prisma.Decimal('299.00'),
+          addressSnapshot: { fullName: 'Jane Doe' },
+          items: [
+            {
+              id: 'item-1',
+              productId: 'prod-1',
+              productNameSnapshot: 'Coffee Mug',
+              quantity: 2,
+              unitPriceSnapshot: new Prisma.Decimal('149.50'),
+            },
+          ],
+          payments: [
+            {
+              paymentMethod: 'COD',
+              paymentStatus: 'COD_PENDING',
+              amount: new Prisma.Decimal('299.00'),
+            },
+          ],
+          statusHistory: [{ status: OrderStatus.PENDING, changedAt: new Date() }],
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ];
+
+      mockPrismaService.order.findMany.mockResolvedValue(mockOrders);
+      mockPrismaService.order.count.mockResolvedValue(1);
+
+      const result = await service.getCustomerOrders('user-123', { page: 1, limit: 10 });
+
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0].id).toBe('order-1');
+      expect(result.data[0].itemCount).toBe(2);
+      expect(result.data[0].currency).toBe('INR');
+      expect(result.pagination.total).toBe(1);
+      expect(result.pagination.totalPages).toBe(1);
+      expect(result.pagination.hasNextPage).toBe(false);
+      expect(result.pagination.hasPreviousPage).toBe(false);
+
+      expect(mockPrismaService.order.findMany).toHaveBeenCalledWith({
+        where: { userId: 'user-123' },
+        include: {
+          items: true,
+          payments: true,
+          statusHistory: { orderBy: { changedAt: 'asc' } },
+        },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        skip: 0,
+        take: 10,
+      });
+    });
+
+    it('should apply optional status filter when provided', async () => {
+      mockPrismaService.order.findMany.mockResolvedValue([]);
+      mockPrismaService.order.count.mockResolvedValue(0);
+
+      await service.getCustomerOrders('user-123', {
+        page: 1,
+        limit: 10,
+        status: OrderStatus.CONFIRMED,
+      });
+
+      expect(mockPrismaService.order.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            userId: 'user-123',
+            status: OrderStatus.CONFIRMED,
+          },
+        }),
+      );
+    });
+
+    it('should clamp limit to max 50 and page to min 1', async () => {
+      mockPrismaService.order.findMany.mockResolvedValue([]);
+      mockPrismaService.order.count.mockResolvedValue(0);
+
+      await service.getCustomerOrders('user-123', {
+        page: -5,
+        limit: 100,
+      });
+
+      expect(mockPrismaService.order.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          skip: 0,
+          take: 50,
+        }),
+      );
+    });
+
+    it('should calculate hasNextPage and hasPreviousPage accurately across multiple pages', async () => {
+      mockPrismaService.order.findMany.mockResolvedValue([]);
+      mockPrismaService.order.count.mockResolvedValue(25);
+
+      const page2Result = await service.getCustomerOrders('user-123', { page: 2, limit: 10 });
+      expect(page2Result.pagination.page).toBe(2);
+      expect(page2Result.pagination.totalPages).toBe(3);
+      expect(page2Result.pagination.hasPreviousPage).toBe(true);
+      expect(page2Result.pagination.hasNextPage).toBe(true);
+    });
+
+    it('should return empty list and zero counts when customer has no orders', async () => {
+      mockPrismaService.order.findMany.mockResolvedValue([]);
+      mockPrismaService.order.count.mockResolvedValue(0);
+
+      const result = await service.getCustomerOrders('new-user', {});
+      expect(result.data).toEqual([]);
+      expect(result.pagination.total).toBe(0);
+      expect(result.pagination.totalPages).toBe(1);
     });
   });
 });

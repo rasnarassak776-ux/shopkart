@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { OrdersController } from './orders.controller';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { QueryOrdersDto } from './dto/query-orders.dto';
 
 describe('OrdersController', () => {
   let controller: OrdersController;
@@ -9,6 +10,7 @@ describe('OrdersController', () => {
 
   const mockOrdersService = {
     createOrder: jest.fn(),
+    getCustomerOrders: jest.fn(),
     getOrderById: jest.fn(),
   };
 
@@ -60,6 +62,38 @@ describe('OrdersController', () => {
         'key-abc',
         'Bearer token-xyz',
       );
+    });
+  });
+
+  describe('getCustomerOrders', () => {
+    it('should delegate to ordersService.getCustomerOrders with user id and query parameters', async () => {
+      const mockResult: any = {
+        data: [{ id: 'order-1' }],
+        pagination: { page: 1, limit: 10, total: 1, totalPages: 1 },
+      };
+      mockOrdersService.getCustomerOrders.mockResolvedValue(mockResult);
+
+      const query: QueryOrdersDto = { page: 1, limit: 10 };
+      const result = await controller.getCustomerOrders('user-123', query);
+
+      expect(result).toBe(mockResult);
+      expect(mockOrdersService.getCustomerOrders).toHaveBeenCalledWith('user-123', query);
+    });
+  });
+
+  describe('getMyOrdersAlias', () => {
+    it('should delegate to ordersService.getCustomerOrders via my-orders alias', async () => {
+      const mockResult: any = {
+        data: [{ id: 'order-2' }],
+        pagination: { page: 1, limit: 10, total: 1, totalPages: 1 },
+      };
+      mockOrdersService.getCustomerOrders.mockResolvedValue(mockResult);
+
+      const query: QueryOrdersDto = { page: 2, limit: 5 };
+      const result = await controller.getMyOrdersAlias('user-123', query);
+
+      expect(result).toBe(mockResult);
+      expect(mockOrdersService.getCustomerOrders).toHaveBeenCalledWith('user-123', query);
     });
   });
 

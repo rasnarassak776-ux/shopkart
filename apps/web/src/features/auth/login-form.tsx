@@ -10,7 +10,17 @@ export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const returnUrl = searchParams.get('returnUrl');
-  const { login } = useAuth();
+  const { login, isAuthenticated, isLoading } = useAuth();
+
+  React.useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      const destination =
+        returnUrl && returnUrl.startsWith('/') && !returnUrl.startsWith('/login') && !returnUrl.startsWith('/admin')
+          ? returnUrl
+          : '/customer/dashboard';
+      router.replace(destination);
+    }
+  }, [isLoading, isAuthenticated, returnUrl, router]);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

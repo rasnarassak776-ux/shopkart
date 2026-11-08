@@ -62,6 +62,8 @@ export const ChevronDownIcon = createIcon('ChevronDownIcon', <path d="m6 9 6 6 6
 
 export const ChevronRightIcon = createIcon('ChevronRightIcon', <path d="m9 6 6 6-6 6" />);
 
+export const ChevronLeftIcon = createIcon('ChevronLeftIcon', <path d="m15 18-6-6 6-6" />);
+
 export const ArrowRightIcon = createIcon('ArrowRightIcon', <path d="M5 12h14m-6-6 6 6-6 6" />);
 
 export const TruckIcon = createIcon(

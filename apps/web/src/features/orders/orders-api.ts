@@ -27,7 +27,7 @@ export async function getCustomerOrders(
   init?: RequestInit,
 ): Promise<PaginatedOrdersResponse> {
   return apiClient<PaginatedOrdersResponse>(
-    `${ORDER_API_URL}/api/v1/orders/my-orders${buildQuery(query)}`,
+    `${ORDER_API_URL}/api/v1/orders${buildQuery(query)}`,
     init,
   );
 }

@@ -17,9 +17,11 @@ import { CartClient } from '../clients/cart.client';
 import { CatalogClient } from '../clients/catalog.client';
 import { InventoryService } from '../inventory/inventory.service';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { QueryOrdersDto } from './dto/query-orders.dto';
 import {
   OrderItemResponse,
   OrderResponse,
+  PaginatedOrdersResponse,
 } from './interfaces/order-response.interface';
 
 @Injectable()
@@ -212,6 +214,55 @@ export class OrdersService {
     return this.formatOrderResponse(completeOrder!);
   }
 
+  async getCustomerOrders(
+    userId: string,
+    query: QueryOrdersDto,
+  ): Promise<PaginatedOrdersResponse> {
+    const page = Math.max(1, Number(query.page) || 1);
+    const limit = Math.min(50, Math.max(1, Number(query.limit) || 10));
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.OrderWhereInput = {
+      userId,
+      ...(query.status ? { status: query.status } : {}),
+    };
+
+    const [orders, total] = await Promise.all([
+      this.prisma.order.findMany({
+        where,
+        include: {
+          items: true,
+          payments: true,
+          statusHistory: { orderBy: { changedAt: 'asc' } },
+        },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        skip,
+        take: limit,
+      }),
+      this.prisma.order.count({ where }),
+    ]);
+
+    const totalPages = Math.ceil(total / limit) || 1;
+    const hasNextPage = page < totalPages;
+    const hasPreviousPage = page > 1;
+
+    return {
+      data: orders.map((order) => this.formatOrderResponse(order)),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+        hasNextPage,
+        hasPreviousPage,
+      },
+      total,
+      page,
+      limit,
+      totalPages,
+    };
+  }
+
   async getOrderById(userId: string, orderId: string): Promise<OrderResponse> {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
@@ -279,11 +330,18 @@ export class OrdersService {
       };
     });
 
+    const totalItemCount = (order.items || []).reduce(
+      (sum: number, item: any) => sum + (item.quantity || 0),
+      0,
+    );
+
     return {
       id: order.id,
       userId: order.userId,
       status: order.status,
       totalAmount: new Prisma.Decimal(order.totalAmount).toFixed(2),
+      currency: 'INR',
+      itemCount: totalItemCount,
       addressSnapshot: order.addressSnapshot,
       items,
       payment: payment

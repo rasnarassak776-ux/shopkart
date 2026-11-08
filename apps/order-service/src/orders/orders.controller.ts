@@ -8,10 +8,12 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { QueryOrdersDto } from './dto/query-orders.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
@@ -34,6 +36,22 @@ export class OrdersController {
       idempotencyKeyHeader,
       authHeader,
     );
+  }
+
+  @Get()
+  async getCustomerOrders(
+    @CurrentUser('id') userId: string,
+    @Query() query: QueryOrdersDto,
+  ) {
+    return this.ordersService.getCustomerOrders(userId, query);
+  }
+
+  @Get('my-orders')
+  async getMyOrdersAlias(
+    @CurrentUser('id') userId: string,
+    @Query() query: QueryOrdersDto,
+  ) {
+    return this.ordersService.getCustomerOrders(userId, query);
   }
 
   @Get(':id')
