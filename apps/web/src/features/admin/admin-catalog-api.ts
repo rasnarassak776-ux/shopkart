@@ -1,6 +1,16 @@
 import { apiClient } from '@/lib/api-client';
 import { CATALOG_API_URL } from '@/features/catalog/catalog-api';
-import type { AdminCategory, AdminCategoryInput, CatalogAdminStats } from './types';
+import type {
+  AdminCategory,
+  AdminCategoryInput,
+  AdminProduct,
+  AdminProductsQuery,
+  AdminProductsResponse,
+  CatalogAdminStats,
+  CreateAdminProductInput,
+  DeleteAdminProductResult,
+  UpdateAdminProductInput,
+} from './types';
 
 /**
  * Admin catalog endpoints. All calls go through the centralized apiClient, which
@@ -9,9 +19,13 @@ import type { AdminCategory, AdminCategoryInput, CatalogAdminStats } from './typ
  */
 const ADMIN_BASE = `${CATALOG_API_URL}/api/v1/catalog/admin`;
 
+// ---------------- Admin Stats ----------------
+
 export function getAdminCatalogStats(init?: RequestInit): Promise<CatalogAdminStats> {
   return apiClient<CatalogAdminStats>(`${ADMIN_BASE}/stats`, init);
 }
+
+// ---------------- Admin Categories ----------------
 
 export function getAdminCategories(init?: RequestInit): Promise<AdminCategory[]> {
   return apiClient<AdminCategory[]>(`${ADMIN_BASE}/categories`, init);
@@ -39,5 +53,59 @@ export function setAdminCategoryStatus(id: string, isActive: boolean): Promise<A
   return apiClient<AdminCategory>(`${ADMIN_BASE}/categories/${encodeURIComponent(id)}/status`, {
     method: 'PATCH',
     body: JSON.stringify({ isActive }),
+  });
+}
+
+// ---------------- Admin Products ----------------
+
+export function getAdminProducts(
+  params?: AdminProductsQuery,
+  init?: RequestInit,
+): Promise<AdminProductsResponse> {
+  const query = new URLSearchParams();
+  if (params?.page) query.set('page', String(params.page));
+  if (params?.limit) query.set('limit', String(params.limit));
+  if (params?.search) query.set('search', params.search);
+  if (params?.categoryId) query.set('categoryId', params.categoryId);
+  if (typeof params?.isActive === 'boolean') query.set('isActive', String(params.isActive));
+  if (params?.sortBy) query.set('sortBy', params.sortBy);
+  if (params?.sortOrder) query.set('sortOrder', params.sortOrder);
+
+  const qs = query.toString();
+  const url = qs ? `${ADMIN_BASE}/products?${qs}` : `${ADMIN_BASE}/products`;
+  return apiClient<AdminProductsResponse>(url, init);
+}
+
+export function getAdminProduct(id: string, init?: RequestInit): Promise<AdminProduct> {
+  return apiClient<AdminProduct>(`${ADMIN_BASE}/products/${encodeURIComponent(id)}`, init);
+}
+
+export function createAdminProduct(input: CreateAdminProductInput): Promise<AdminProduct> {
+  return apiClient<AdminProduct>(`${ADMIN_BASE}/products`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export function updateAdminProduct(
+  id: string,
+  input: UpdateAdminProductInput,
+): Promise<AdminProduct> {
+  return apiClient<AdminProduct>(`${ADMIN_BASE}/products/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  });
+}
+
+export function setAdminProductStatus(id: string, isActive: boolean): Promise<AdminProduct> {
+  return apiClient<AdminProduct>(`${ADMIN_BASE}/products/${encodeURIComponent(id)}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ isActive }),
+  });
+}
+
+export function deleteAdminProduct(id: string): Promise<DeleteAdminProductResult> {
+  return apiClient<DeleteAdminProductResult>(`${ADMIN_BASE}/products/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
   });
 }
