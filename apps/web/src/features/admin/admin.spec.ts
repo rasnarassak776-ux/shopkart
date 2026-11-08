@@ -36,7 +36,7 @@ describe('admin navigation', () => {
     for (const label of ['Orders', 'Inventory', 'Customers']) {
       expect(item(label).availability).toBe('coming-soon');
     }
-    expect(item('Products').availability).toBe('next-phase');
+    expect(item('Products').availability).toBe('available');
     expect(item('Categories').availability).toBe('available');
   });
 
@@ -59,6 +59,16 @@ describe('admin navigation', () => {
       { label: 'New category' },
     ]);
     expect(getAdminBreadcrumbs('/admin/categories/123/edit').at(-1)).toEqual({ label: 'Edit category' });
+    expect(getAdminBreadcrumbs('/admin/products')).toEqual([
+      { label: 'Admin', href: '/admin' },
+      { label: 'Products' },
+    ]);
+    expect(getAdminBreadcrumbs('/admin/products/new')).toEqual([
+      { label: 'Admin', href: '/admin' },
+      { label: 'Products', href: '/admin/products' },
+      { label: 'New product' },
+    ]);
+    expect(getAdminBreadcrumbs('/admin/products/prod-123/edit').at(-1)).toEqual({ label: 'Edit product' });
   });
 
   it('only hides storefront chrome on admin routes', () => {

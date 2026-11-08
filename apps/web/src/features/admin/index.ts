@@ -4,4 +4,8 @@ export * from './category-editor';
 export * from './category-form';
 export * from './category-manager';
 export * from './category-utils';
+export * from './product-editor';
+export * from './product-form';
+export * from './product-image-manager';
+export * from './product-manager';
 export type * from './types';

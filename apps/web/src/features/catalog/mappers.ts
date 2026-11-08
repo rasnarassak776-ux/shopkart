@@ -28,10 +28,17 @@ const CATEGORY_IMAGES: Record<string, { src: string; alt: string }> = {
   },
 };
 
+export function resolveCatalogImageUrl(url: string | null | undefined): string {
+  if (!url) return FALLBACK_IMAGE;
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  // Return normalized relative URL for same-origin proxying via Next.js rewrite
+  return url.startsWith('/') ? url : `/${url}`;
+}
+
 function primaryImage(product: CatalogProduct): { src: string; alt: string } {
   const image = product.images.find((img) => img.isPrimary) ?? product.images[0];
   return {
-    src: image?.imageUrl ?? FALLBACK_IMAGE,
+    src: resolveCatalogImageUrl(image?.imageUrl),
     alt: image?.altText ?? product.name,
   };
 }

@@ -1,13 +1,18 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
+  UploadedFiles,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import { UserRole } from '@shopkart/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -19,6 +24,17 @@ import {
   UpdateCategoryStatusDto,
 } from '../categories/dto/update-category.dto';
 import { AdminStatsService } from './admin-stats.service';
+import { ProductsService } from '../products/products.service';
+import { CreateProductDto } from '../products/dto/create-product.dto';
+import {
+  UpdateProductDto,
+  UpdateProductStatusDto,
+} from '../products/dto/update-product.dto';
+import { QueryAdminProductsDto } from '../products/dto/query-admin-products.dto';
+import {
+  MAX_IMAGE_FILE_SIZE,
+  MAX_IMAGES_PER_REQUEST,
+} from '../storage/file-validation';
 
 /**
  * Catalog administration API. Every route requires a valid access token
@@ -32,12 +48,17 @@ export class AdminController {
   constructor(
     private readonly categoriesService: CategoriesService,
     private readonly statsService: AdminStatsService,
+    private readonly productsService: ProductsService,
   ) {}
+
+  // ---------------- Stats ----------------
 
   @Get('stats')
   async getStats() {
     return this.statsService.getCatalogStats();
   }
+
+  // ---------------- Categories ----------------
 
   @Get('categories')
   async findAllCategories() {
@@ -68,5 +89,79 @@ export class AdminController {
     @Body() dto: UpdateCategoryStatusDto,
   ) {
     return this.categoriesService.setStatus(id, dto.isActive);
+  }
+
+  // ---------------- Products ----------------
+
+  @Get('products')
+  async findAllProducts(@Query() query: QueryAdminProductsDto) {
+    return this.productsService.findAllForAdmin(query);
+  }
+
+  @Get('products/:id')
+  async findProduct(@Param('id', ParseUUIDPipe) id: string) {
+    return this.productsService.findByIdForAdmin(id);
+  }
+
+  @Post('products')
+  async createProduct(@Body() dto: CreateProductDto) {
+    return this.productsService.create(dto);
+  }
+
+  @Patch('products/:id')
+  async updateProduct(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateProductDto,
+  ) {
+    return this.productsService.update(id, dto);
+  }
+
+  @Patch('products/:id/status')
+  async updateProductStatus(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateProductStatusDto,
+  ) {
+    return this.productsService.setStatus(id, dto.isActive);
+  }
+
+  @Delete('products/:id')
+  async deleteProduct(@Param('id', ParseUUIDPipe) id: string) {
+    return this.productsService.delete(id);
+  }
+
+  // ---------------- Product Images ----------------
+
+  @Post('products/:id/images')
+  @UseInterceptors(
+    FilesInterceptor('files', MAX_IMAGES_PER_REQUEST, {
+      limits: { fileSize: MAX_IMAGE_FILE_SIZE },
+    }),
+  )
+  async uploadProductImages(
+    @Param('id', ParseUUIDPipe) id: string,
+    @UploadedFiles() files: Array<{
+      buffer?: Buffer;
+      originalname?: string;
+      mimetype?: string;
+      size?: number;
+    }>,
+  ) {
+    return this.productsService.uploadImages(id, files || []);
+  }
+
+  @Delete('products/:id/images/:imageId')
+  async deleteProductImage(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('imageId', ParseUUIDPipe) imageId: string,
+  ) {
+    return this.productsService.deleteImage(id, imageId);
+  }
+
+  @Patch('products/:id/images/:imageId/primary')
+  async setPrimaryProductImage(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('imageId', ParseUUIDPipe) imageId: string,
+  ) {
+    return this.productsService.setPrimaryImage(id, imageId);
   }
 }
