@@ -8,8 +8,11 @@ import {
   Patch,
   Post,
   Query,
+  UploadedFiles,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import { UserRole } from '@shopkart/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -28,6 +31,10 @@ import {
   UpdateProductStatusDto,
 } from '../products/dto/update-product.dto';
 import { QueryAdminProductsDto } from '../products/dto/query-admin-products.dto';
+import {
+  MAX_IMAGE_FILE_SIZE,
+  MAX_IMAGES_PER_REQUEST,
+} from '../storage/file-validation';
 
 /**
  * Catalog administration API. Every route requires a valid access token
@@ -120,5 +127,41 @@ export class AdminController {
   @Delete('products/:id')
   async deleteProduct(@Param('id', ParseUUIDPipe) id: string) {
     return this.productsService.delete(id);
+  }
+
+  // ---------------- Product Images ----------------
+
+  @Post('products/:id/images')
+  @UseInterceptors(
+    FilesInterceptor('files', MAX_IMAGES_PER_REQUEST, {
+      limits: { fileSize: MAX_IMAGE_FILE_SIZE },
+    }),
+  )
+  async uploadProductImages(
+    @Param('id', ParseUUIDPipe) id: string,
+    @UploadedFiles() files: Array<{
+      buffer?: Buffer;
+      originalname?: string;
+      mimetype?: string;
+      size?: number;
+    }>,
+  ) {
+    return this.productsService.uploadImages(id, files || []);
+  }
+
+  @Delete('products/:id/images/:imageId')
+  async deleteProductImage(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('imageId', ParseUUIDPipe) imageId: string,
+  ) {
+    return this.productsService.deleteImage(id, imageId);
+  }
+
+  @Patch('products/:id/images/:imageId/primary')
+  async setPrimaryProductImage(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('imageId', ParseUUIDPipe) imageId: string,
+  ) {
+    return this.productsService.setPrimaryImage(id, imageId);
   }
 }

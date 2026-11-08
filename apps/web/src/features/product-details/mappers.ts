@@ -1,4 +1,5 @@
 import type { CatalogProduct } from '@/features/catalog/types';
+import { resolveCatalogImageUrl } from '@/features/catalog/mappers';
 import type { ProductDetails } from './types';
 
 const FALLBACK_IMAGE =
@@ -13,7 +14,7 @@ function productImages(product: CatalogProduct) {
         a.displayOrder - b.displayOrder,
     )
     .map((image) => ({
-      src: image.imageUrl,
+      src: resolveCatalogImageUrl(image.imageUrl),
       alt: image.altText ?? product.name,
     }));
   return images.length > 0

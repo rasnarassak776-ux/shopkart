@@ -18,6 +18,14 @@ import {
   AdminProductSortField,
   AdminProductSortOrder,
 } from './dto/query-admin-products.dto';
+import {
+  StorageService,
+  StoredFileResult,
+} from '../storage/storage.interface';
+import {
+  MAX_IMAGES_PER_REQUEST,
+  validateImageFile,
+} from '../storage/file-validation';
 
 const productInclude = {
   category: {
@@ -30,7 +38,10 @@ const productInclude = {
 
 @Injectable()
 export class ProductsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storageService?: StorageService,
+  ) {}
 
   slugify(text: string): string {
     return text
@@ -577,5 +588,185 @@ export class ProductsService {
       message: `Product "${product.name}" deleted successfully`,
       id,
     };
+  }
+
+  // ---------------- Product Images Management ----------------
+
+  async uploadImages(
+    productId: string,
+    files: Array<{
+      buffer?: Buffer;
+      originalname?: string;
+      mimetype?: string;
+      size?: number;
+    }>,
+  ) {
+    const product = await this.prisma.product.findUnique({
+      where: { id: productId },
+      select: { id: true, name: true },
+    });
+    if (!product) {
+      throw new NotFoundException(`Product with ID "${productId}" not found`);
+    }
+
+    if (!files || files.length === 0) {
+      throw new BadRequestException('At least one image file must be provided');
+    }
+
+    if (files.length > MAX_IMAGES_PER_REQUEST) {
+      throw new BadRequestException(
+        `Maximum ${MAX_IMAGES_PER_REQUEST} files can be uploaded per request`,
+      );
+    }
+
+    const validatedFiles = files.map((file) => validateImageFile(file));
+
+    if (!this.storageService) {
+      throw new BadRequestException('Storage service is not available');
+    }
+
+    // Check existing images to determine next displayOrder and whether a primary image already exists
+    const existingImages = await this.prisma.productImage.findMany({
+      where: { productId },
+      orderBy: [{ displayOrder: 'asc' }],
+    });
+
+    const hasPrimary = existingImages.some((img) => img.isPrimary);
+    const maxOrder =
+      existingImages.length > 0
+        ? Math.max(...existingImages.map((img) => img.displayOrder))
+        : -1;
+    const nextDisplayOrder = maxOrder + 1;
+
+    // Save files to local storage, keeping track of saved filenames for cleanup on error
+    const savedFiles: StoredFileResult[] = [];
+    try {
+      for (const file of validatedFiles) {
+        const stored = await this.storageService.saveFile({
+          buffer: file.buffer,
+          originalName: file.originalName,
+          mimeType: file.mimeType,
+        });
+        savedFiles.push(stored);
+      }
+
+      // Save records in Prisma transaction
+      const createdImages = await this.prisma.$transaction(async (tx) => {
+        const records: Array<Prisma.ProductImageGetPayload<object>> = [];
+        for (let i = 0; i < savedFiles.length; i++) {
+          const stored = savedFiles[i];
+          const isPrimary = !hasPrimary && i === 0;
+          const record = await tx.productImage.create({
+            data: {
+              productId,
+              imageUrl: stored.url,
+              altText: `${product.name} image ${nextDisplayOrder + i + 1}`,
+              displayOrder: nextDisplayOrder + i,
+              isPrimary,
+            },
+          });
+          records.push(record);
+        }
+        return records;
+      });
+
+      return createdImages;
+    } catch (error) {
+      // Ensure a failed database operation does not leave uploaded files orphaned
+      for (const saved of savedFiles) {
+        await this.storageService.deleteFile(saved.filename).catch(() => {});
+      }
+      throw error;
+    }
+  }
+
+  async deleteImage(productId: string, imageId: string) {
+    const product = await this.prisma.product.findUnique({
+      where: { id: productId },
+      select: { id: true },
+    });
+    if (!product) {
+      throw new NotFoundException(`Product with ID "${productId}" not found`);
+    }
+
+    const image = await this.prisma.productImage.findUnique({
+      where: { id: imageId },
+    });
+    if (!image || image.productId !== productId) {
+      throw new NotFoundException(
+        `Image with ID "${imageId}" not found for product "${productId}"`,
+      );
+    }
+
+    // If the deleted image was primary, automatically find the next available image to promote
+    const nextPrimary = image.isPrimary
+      ? await this.prisma.productImage.findFirst({
+          where: { productId, id: { not: imageId } },
+          orderBy: [{ displayOrder: 'asc' }, { createdAt: 'asc' }],
+        })
+      : null;
+
+    // Database deletion + primary promotion in transaction
+    await this.prisma.$transaction(async (tx) => {
+      if (nextPrimary) {
+        await tx.productImage.update({
+          where: { id: nextPrimary.id },
+          data: { isPrimary: true },
+        });
+      }
+      await tx.productImage.delete({
+        where: { id: imageId },
+      });
+    });
+
+    // Delete the local file only AFTER database deletion succeeds
+    if (this.storageService && image.imageUrl) {
+      const match = image.imageUrl.match(
+        /\/api\/v1\/catalog\/images\/([a-zA-Z0-9_.-]+)$/,
+      );
+      if (match) {
+        await this.storageService.deleteFile(match[1]).catch(() => {});
+      }
+    }
+
+    return {
+      success: true,
+      message: 'Product image deleted successfully',
+      imageId,
+      promotedPrimaryImageId: nextPrimary?.id ?? null,
+    };
+  }
+
+  async setPrimaryImage(productId: string, imageId: string) {
+    const product = await this.prisma.product.findUnique({
+      where: { id: productId },
+      select: { id: true },
+    });
+    if (!product) {
+      throw new NotFoundException(`Product with ID "${productId}" not found`);
+    }
+
+    const image = await this.prisma.productImage.findUnique({
+      where: { id: imageId },
+    });
+    if (!image || image.productId !== productId) {
+      throw new NotFoundException(
+        `Image with ID "${imageId}" not found for product "${productId}"`,
+      );
+    }
+
+    // Set all sibling images to isPrimary: false, and target image to isPrimary: true
+    const [_, updated] = await this.prisma.$transaction([
+      this.prisma.productImage.updateMany({
+        where: { productId },
+        data: { isPrimary: false },
+      }),
+      this.prisma.productImage.update({
+        where: { id: imageId },
+        data: { isPrimary: true },
+      }),
+    ]);
+
+    return updated;
   }
 }

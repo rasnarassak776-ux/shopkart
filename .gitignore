@@ -35,5 +35,10 @@ Thumbs.db
 .idea/
 
 
+# Local File Storage / Uploads
+/storage/
+/uploads/
+storage/product-images/
+
 # TypeScript incremental build info
 *.tsbuildinfo

@@ -4,6 +4,7 @@ import type {
   AdminCategory,
   AdminCategoryInput,
   AdminProduct,
+  AdminProductImage,
   AdminProductsQuery,
   AdminProductsResponse,
   CatalogAdminStats,
@@ -109,3 +110,43 @@ export function deleteAdminProduct(id: string): Promise<DeleteAdminProductResult
     method: 'DELETE',
   });
 }
+
+// ---------------- Product Images ----------------
+
+export function uploadProductImages(
+  productId: string,
+  formData: FormData,
+): Promise<AdminProductImage[]> {
+  return apiClient<AdminProductImage[]>(
+    `${ADMIN_BASE}/products/${encodeURIComponent(productId)}/images`,
+    {
+      method: 'POST',
+      body: formData,
+    },
+  );
+}
+
+export function deleteProductImage(
+  productId: string,
+  imageId: string,
+): Promise<{ success: boolean; message: string; imageId: string }> {
+  return apiClient<{ success: boolean; message: string; imageId: string }>(
+    `${ADMIN_BASE}/products/${encodeURIComponent(productId)}/images/${encodeURIComponent(imageId)}`,
+    {
+      method: 'DELETE',
+    },
+  );
+}
+
+export function setPrimaryProductImage(
+  productId: string,
+  imageId: string,
+): Promise<AdminProductImage> {
+  return apiClient<AdminProductImage>(
+    `${ADMIN_BASE}/products/${encodeURIComponent(productId)}/images/${encodeURIComponent(imageId)}/primary`,
+    {
+      method: 'PATCH',
+    },
+  );
+}
+
