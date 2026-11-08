@@ -2,11 +2,8 @@ import type { CatalogProduct } from '@/features/catalog/types';
 import { resolveCatalogImageUrl } from '@/features/catalog/mappers';
 import type { ProductDetails } from './types';
 
-const FALLBACK_IMAGE =
-  'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=900&q=80';
-
 function productImages(product: CatalogProduct) {
-  const images = product.images
+  return product.images
     .slice()
     .sort(
       (a, b) =>
@@ -16,10 +13,8 @@ function productImages(product: CatalogProduct) {
     .map((image) => ({
       src: resolveCatalogImageUrl(image.imageUrl),
       alt: image.altText ?? product.name,
-    }));
-  return images.length > 0
-    ? images
-    : [{ src: FALLBACK_IMAGE, alt: product.name }];
+    }))
+    .filter((img) => Boolean(img.src));
 }
 
 /**

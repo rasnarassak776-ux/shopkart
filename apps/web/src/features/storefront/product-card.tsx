@@ -1,7 +1,16 @@
-import React from 'react';
+'use client';
+
+import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Badge, type BadgeVariant, Button, CartIcon, HeartIcon, Price, Rating } from '@/components/ui';
+import {
+  Badge,
+  type BadgeVariant,
+  HeartIcon,
+  Price,
+  Rating,
+  ShoppingBagIcon,
+} from '@/components/ui';
 import { AddToCartButton } from '@/features/cart';
 import { textStyles } from '@/design-system/text-styles';
 import { cn } from '@/lib/cn';
@@ -14,18 +23,28 @@ const badgeConfig: Record<ProductBadge, { label: string; variant: BadgeVariant }
 };
 
 export function ProductCard({ product }: { product: ProductSummary }) {
+  const [imgError, setImgError] = useState(false);
   const badge = product.badge ? badgeConfig[product.badge] : null;
+  const hasImage = Boolean(product.image?.src) && !imgError;
 
   return (
     <article className="group relative flex h-full flex-col overflow-hidden rounded-xl border border-line bg-surface transition-shadow duration-200 hover:shadow-raised">
       <div className="relative aspect-square overflow-hidden bg-surface-muted">
-        <Image
-          src={product.image.src}
-          alt={product.image.alt}
-          fill
-          sizes="(min-width: 1280px) 300px, (min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw"
-          className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-        />
+        {hasImage ? (
+          <Image
+            src={product.image.src}
+            alt={product.image.alt || product.name}
+            fill
+            sizes="(min-width: 1280px) 300px, (min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw"
+            className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+            onError={() => setImgError(true)}
+          />
+        ) : (
+          <div className="flex h-full w-full flex-col items-center justify-center gap-1.5 bg-surface-muted text-ink-muted">
+            <ShoppingBagIcon className="h-9 w-9 opacity-35" />
+            <span className="text-[11px] font-medium tracking-wide">No image</span>
+          </div>
+        )}
         {badge && (
           <Badge variant={badge.variant} className="absolute left-3 top-3">
             {badge.label}

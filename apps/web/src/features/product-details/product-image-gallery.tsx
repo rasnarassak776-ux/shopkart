@@ -36,9 +36,19 @@ export function ProductImageGallery({ images, productName }: ProductImageGallery
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [failedIndexes, setFailedIndexes] = useState<Set<number>>(new Set());
 
-  const safeIndex = Math.min(selectedIndex, images.length - 1);
+  if (!images || images.length === 0) {
+    return (
+      <div className="space-y-3">
+        <div className="relative aspect-square overflow-hidden rounded-xl border border-line bg-surface-muted">
+          <ImageFallback label="No image available" />
+        </div>
+      </div>
+    );
+  }
+
+  const safeIndex = Math.max(0, Math.min(selectedIndex, images.length - 1));
   const current = images[safeIndex];
-  const currentFailed = failedIndexes.has(safeIndex);
+  const currentFailed = failedIndexes.has(safeIndex) || !current?.src;
 
   const markFailed = (index: number) =>
     setFailedIndexes((prev) => {

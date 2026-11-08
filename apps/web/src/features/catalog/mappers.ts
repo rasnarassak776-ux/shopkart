@@ -29,7 +29,7 @@ const CATEGORY_IMAGES: Record<string, { src: string; alt: string }> = {
 };
 
 export function resolveCatalogImageUrl(url: string | null | undefined): string {
-  if (!url) return FALLBACK_IMAGE;
+  if (!url) return '';
   if (url.startsWith('http://') || url.startsWith('https://')) return url;
   // Return normalized relative URL for same-origin proxying via Next.js rewrite
   return url.startsWith('/') ? url : `/${url}`;
@@ -51,7 +51,7 @@ function primaryImage(product: CatalogProduct): { src: string; alt: string } {
 export function toProductSummary(product: CatalogProduct): ProductSummary {
   return {
     id: product.id,
-    href: `/products/${product.id}`,
+    href: `/products/${product.slug || product.id}`,
     brand: product.brand ?? 'Shopkart',
     name: product.name,
     price: Number(product.price),

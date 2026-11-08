@@ -29,10 +29,10 @@ describe('Image URL Resolution & Next.js Rewrite Configuration', () => {
       );
     });
 
-    it('returns the fallback image when url is undefined, null, or empty', () => {
-      expect(resolveCatalogImageUrl(undefined)).toContain('images.unsplash.com');
-      expect(resolveCatalogImageUrl(null)).toContain('images.unsplash.com');
-      expect(resolveCatalogImageUrl('')).toContain('images.unsplash.com');
+    it('returns an empty string when url is undefined, null, or empty (no hardcoded Unsplash fallback)', () => {
+      expect(resolveCatalogImageUrl(undefined)).toBe('');
+      expect(resolveCatalogImageUrl(null)).toBe('');
+      expect(resolveCatalogImageUrl('')).toBe('');
     });
   });
 

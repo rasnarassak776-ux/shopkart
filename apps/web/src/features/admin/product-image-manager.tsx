@@ -389,7 +389,8 @@ export function ProductImageManager({
               {selectedFiles.map((preview, idx) => (
                 <div
                   key={idx}
-                  className="relative group h-20 w-20 overflow-hidden rounded-lg border border-line bg-surface"
+                  className="relative gro
+                  up h-20 w-20 overflow-hidden rounded-lg border border-line bg-surface"
                 >
                   <Image
                     src={preview.previewUrl}

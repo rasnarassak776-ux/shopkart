@@ -46,15 +46,35 @@ export async function getCatalogProducts(
   );
 }
 
-/** Fetches a single catalog product by its UUID. */
-export async function getCatalogProduct(
-  id: string,
+const UUID_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+/** Fetches a single catalog product by its URL slug. */
+export async function getCatalogProductBySlug(
+  slug: string,
   init?: RequestInit,
 ): Promise<CatalogProduct> {
   return apiClient<CatalogProduct>(
-    `${CATALOG_API_URL}/api/v1/catalog/products/${encodeURIComponent(id)}`,
+    `${CATALOG_API_URL}/api/v1/catalog/products/slug/${encodeURIComponent(slug)}`,
     init,
   );
+}
+
+/**
+ * Fetches a single catalog product by its UUID or URL slug.
+ * UUIDs are queried against `/products/:id`; slugs against `/products/slug/:slug`.
+ */
+export async function getCatalogProduct(
+  idOrSlug: string,
+  init?: RequestInit,
+): Promise<CatalogProduct> {
+  if (UUID_REGEX.test(idOrSlug)) {
+    return apiClient<CatalogProduct>(
+      `${CATALOG_API_URL}/api/v1/catalog/products/${encodeURIComponent(idOrSlug)}`,
+      init,
+    );
+  }
+  return getCatalogProductBySlug(idOrSlug, init);
 }
 
 /** Fetches distinct brands across active products for filter options. */

@@ -316,9 +316,9 @@ describe('Member 2 — Phase 3: Admin Product Management Frontend Tests', () => 
       expect(resolveCatalogImageUrl(unsplashUrl)).toBe(unsplashUrl);
     });
 
-    it('returns default fallback image for null or undefined input', () => {
-      expect(resolveCatalogImageUrl(null)).toContain('unsplash.com');
-      expect(resolveCatalogImageUrl(undefined)).toContain('unsplash.com');
+    it('returns empty string for null or undefined input (no hardcoded Unsplash fallback for products)', () => {
+      expect(resolveCatalogImageUrl(null)).toBe('');
+      expect(resolveCatalogImageUrl(undefined)).toBe('');
     });
   });
 

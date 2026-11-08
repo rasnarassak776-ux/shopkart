@@ -4,10 +4,8 @@ import { getStorefrontCatalog } from '@/features/catalog/storefront-data';
 import {
   PLACEHOLDER_HREF,
   presentationCategories,
-  presentationFeaturedProducts,
   presentationHero,
   presentationHeroTiles,
-  presentationNewArrivals,
   presentationPromotions,
 } from '@/features/storefront/presentation-data';
 
@@ -18,14 +16,8 @@ export default async function HomePage() {
 
   const categories =
     catalog.categories.length > 0 ? catalog.categories : presentationCategories;
-  const featuredProducts =
-    catalog.products.length > 0
-      ? catalog.products.slice(0, 8)
-      : presentationFeaturedProducts;
-  const newArrivals =
-    catalog.products.length > 0
-      ? catalog.products.slice(0, 8)
-      : presentationNewArrivals;
+  const featuredProducts = catalog.products.slice(0, 8);
+  const moreProducts = catalog.products.slice(8, 16);
 
   return (
     <Container className="space-y-12 pt-4 sm:space-y-16 sm:pt-6">
@@ -54,20 +46,37 @@ export default async function HomePage() {
         </ul>
       </section>
 
-      <section aria-labelledby="trending-heading">
+      <section aria-labelledby="featured-products-heading">
         <SectionHeading
-          id="trending-heading"
-          title="Trending this week"
-          description="Top picks our customers can't stop adding to cart."
+          id="featured-products-heading"
+          title="Featured products"
+          description="Explore items available in the Shopkart catalog."
           action={{ label: 'View all', href: '/products' }}
         />
-        <ul className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
-          {featuredProducts.map((product) => (
-            <li key={product.id}>
-              <ProductCard product={product} />
-            </li>
-          ))}
-        </ul>
+        {catalog.error ? (
+          <div
+            role="alert"
+            className="rounded-xl border border-dashed border-danger/30 bg-danger/5 p-8 text-center text-sm text-danger-700"
+          >
+            <p className="font-semibold text-danger-800">Unable to load catalog products</p>
+            <p className="mt-1 text-xs text-danger-600">
+              The catalog service is temporarily unreachable. Please try again later.
+            </p>
+          </div>
+        ) : featuredProducts.length > 0 ? (
+          <ul className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
+            {featuredProducts.map((product) => (
+              <li key={product.id}>
+                <ProductCard product={product} />
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="rounded-xl border border-line bg-surface p-8 text-center text-sm text-ink-muted">
+            <p className="font-medium text-ink">No products available right now.</p>
+            <p className="mt-1">Check back soon as new products are added to the catalog.</p>
+          </div>
+        )}
       </section>
 
       <section aria-label="Promotions" className="grid gap-4 md:grid-cols-2">
@@ -76,21 +85,23 @@ export default async function HomePage() {
         ))}
       </section>
 
-      <section aria-labelledby="new-arrivals-heading">
-        <SectionHeading
-          id="new-arrivals-heading"
-          title="New arrivals"
-          description="Fresh drops across home, footwear and fashion."
-          action={{ label: 'Shop new in', href: '/products' }}
-        />
-        <ul className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
-          {newArrivals.map((product) => (
-            <li key={product.id}>
-              <ProductCard product={product} />
-            </li>
-          ))}
-        </ul>
-      </section>
+      {moreProducts.length > 0 && (
+        <section aria-labelledby="more-products-heading">
+          <SectionHeading
+            id="more-products-heading"
+            title="More to explore"
+            description="Discover more items across our categories."
+            action={{ label: 'View all', href: '/products' }}
+          />
+          <ul className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
+            {moreProducts.map((product) => (
+              <li key={product.id}>
+                <ProductCard product={product} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </Container>
   );
 }

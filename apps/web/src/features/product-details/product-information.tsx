@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { Price, MinusIcon, PlusIcon } from '@/components/ui';
 import { textStyles } from '@/design-system/text-styles';
 import { cn } from '@/lib/cn';
@@ -35,7 +36,13 @@ export function ProductInformation({ product }: ProductInformationProps) {
 
   return (
     <div>
-      <p className={textStyles.productBrand}>{product.brand}</p>
+      <div className="flex items-center gap-2 text-sm text-ink-muted">
+        <Link href={product.category.href} className="font-medium text-accent-600 hover:underline">
+          {product.category.name}
+        </Link>
+        <span>&bull;</span>
+        <span className={textStyles.productBrand}>{product.brand}</span>
+      </div>
       <h1 className={cn(textStyles.h1, 'mt-1.5')}>{product.name}</h1>
 
       <div className="mt-4">
