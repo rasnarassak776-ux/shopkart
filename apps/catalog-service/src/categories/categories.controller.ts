@@ -3,7 +3,6 @@ import {
   Get,
   Param,
   ParseUUIDPipe,
-  Query,
   UseGuards,
 } from '@nestjs/common';
 import { CategoriesService } from './categories.service';
@@ -16,10 +15,14 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}
 
+  /**
+   * Public storefront listing: active categories only. Inactive categories
+   * are exposed exclusively through the admin-only `catalog/admin/categories`.
+   */
   @Public()
   @Get()
-  async findAll(@Query('includeInactive') includeInactive?: string) {
-    return this.categoriesService.findAll(includeInactive === 'true');
+  async findAll() {
+    return this.categoriesService.findAll();
   }
 
   @Public()

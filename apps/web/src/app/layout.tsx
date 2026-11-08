@@ -3,7 +3,7 @@ import { Inter, Plus_Jakarta_Sans } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/context/auth-context';
 import { CartProvider } from '@/features/cart';
-import { SiteFooter, SiteHeader } from '@/components/layout';
+import { SiteFooter, SiteHeader, StorefrontOnly } from '@/components/layout';
 import { colors } from '@/design-system/tokens';
 
 const sans = Inter({ subsets: ['latin'], variable: '--font-sans', display: 'swap' });
@@ -33,11 +33,15 @@ export default function RootLayout({
       <body className="antialiased min-h-screen flex flex-col bg-canvas text-ink">
         <AuthProvider>
           <CartProvider>
-            <SiteHeader />
+            <StorefrontOnly>
+              <SiteHeader />
+            </StorefrontOnly>
             <main id="main-content" className="flex flex-1 flex-col">
               {children}
             </main>
-            <SiteFooter />
+            <StorefrontOnly>
+              <SiteFooter />
+            </StorefrontOnly>
           </CartProvider>
         </AuthProvider>
       </body>

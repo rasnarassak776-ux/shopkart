@@ -4,3 +4,4 @@ export * from './mobile-nav';
 export * from './search-bar';
 export * from './site-footer';
 export * from './site-header';
+export * from './storefront-only';

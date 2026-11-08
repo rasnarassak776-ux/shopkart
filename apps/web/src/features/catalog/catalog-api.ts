@@ -16,7 +16,7 @@ export type {
   CatalogSortOrder,
 } from './types';
 
-const CATALOG_API_URL = (
+export const CATALOG_API_URL = (
   process.env.NEXT_PUBLIC_CATALOG_API_URL || 'http://localhost:3020'
 ).replace(/\/$/, '');
 

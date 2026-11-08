@@ -200,6 +200,65 @@ export const BanknotesIcon = createIcon(
   </>,
 );
 
+export const DashboardIcon = createIcon(
+  'DashboardIcon',
+  <>
+    <rect x="3" y="3" width="7" height="9" rx="1.5" />
+    <rect x="14" y="3" width="7" height="5" rx="1.5" />
+    <rect x="14" y="12" width="7" height="9" rx="1.5" />
+    <rect x="3" y="16" width="7" height="5" rx="1.5" />
+  </>,
+);
+
+export const ClipboardIcon = createIcon(
+  'ClipboardIcon',
+  <>
+    <rect x="5" y="4" width="14" height="17" rx="2" />
+    <path d="M9 4V3h6v1M9 10h6M9 14h6M9 18h3" />
+  </>,
+);
+
+export const PackageIcon = createIcon(
+  'PackageIcon',
+  <>
+    <path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z" />
+    <path d="m4 7.5 8 4.5 8-4.5M12 12v9M8 5.25l8 4.5" />
+  </>,
+);
+
+export const UsersIcon = createIcon(
+  'UsersIcon',
+  <>
+    <circle cx="9" cy="8" r="3.5" />
+    <path d="M2.5 20c1-3.2 3.6-5 6.5-5s5.5 1.8 6.5 5" />
+    <path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18 15.3c1.7.6 3 2.2 3.5 4.7" />
+  </>,
+);
+
+export const SettingsIcon = createIcon(
+  'SettingsIcon',
+  <>
+    <circle cx="12" cy="12" r="3" />
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.14.34.37.62.68.82.3.2.66.31 1.02.31H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" />
+  </>,
+);
+
+export const ExternalLinkIcon = createIcon(
+  'ExternalLinkIcon',
+  <>
+    <path d="M14 4h6v6M20 4l-9 9" />
+    <path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" />
+  </>,
+);
+
+export const SidebarIcon = createIcon(
+  'SidebarIcon',
+  <>
+    <rect x="3" y="4" width="18" height="16" rx="2" />
+    <path d="M9 4v16" />
+  </>,
+);
+
 export function SpinnerIcon({ className = 'h-5 w-5', ...props }: IconProps) {
   return (
     <svg
