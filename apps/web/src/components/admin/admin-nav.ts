@@ -38,7 +38,7 @@ export const adminNavSections: AdminNavSection[] = [
     title: 'Store',
     items: [
       { label: 'Overview', href: '/admin', icon: DashboardIcon, availability: 'available', exact: true },
-      { label: 'Products', href: '/admin/products', icon: ShoppingBagIcon, availability: 'next-phase' },
+      { label: 'Products', href: '/admin/products', icon: ShoppingBagIcon, availability: 'available' },
       { label: 'Categories', href: '/admin/categories', icon: TagIcon, availability: 'available' },
     ],
   },
@@ -83,6 +83,10 @@ export function getAdminBreadcrumbs(pathname: string): AdminBreadcrumb[] {
     crumbs.push({ label: 'New category' });
   } else if (segments[0] === 'categories' && segments[2] === 'edit') {
     crumbs.push({ label: 'Edit category' });
+  } else if (segments[0] === 'products' && segments[1] === 'new') {
+    crumbs.push({ label: 'New product' });
+  } else if (segments[0] === 'products' && segments[2] === 'edit') {
+    crumbs.push({ label: 'Edit product' });
   }
 
   const last = crumbs[crumbs.length - 1];
