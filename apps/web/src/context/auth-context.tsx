@@ -7,13 +7,33 @@ import React, {
   useEffect,
   useCallback,
   useMemo,
+  useRef,
 } from 'react';
 import {
   apiClient,
   setAccessToken as setGlobalAccessToken,
   onAuthFailure,
+  onTokenRefreshed,
   ApiError,
 } from '../lib/api-client';
+
+const TOKEN_STORAGE_KEY = 'shopkart_auth_token';
+const USER_STORAGE_KEY = 'shopkart_auth_user';
+const AUTH_CHANNEL_NAME = 'shopkart_auth';
+
+type AuthBroadcast = { type: 'login'; userId: string } | { type: 'logout' };
+
+function persistSession(token: string, user: AuthUser) {
+  if (typeof window === 'undefined') return;
+  sessionStorage.setItem(TOKEN_STORAGE_KEY, token);
+  sessionStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
+}
+
+function clearStoredSession() {
+  if (typeof window === 'undefined') return;
+  sessionStorage.removeItem(TOKEN_STORAGE_KEY);
+  sessionStorage.removeItem(USER_STORAGE_KEY);
+}
 
 export interface AuthUser {
   id: string;
@@ -56,28 +76,56 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [accessToken, setAccessTokenState] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const userRef = useRef<AuthUser | null>(null);
+  const channelRef = useRef<BroadcastChannel | null>(null);
 
   // Sync token state to API client
   const updateTokens = useCallback((token: string | null, newUser: AuthUser | null) => {
     setAccessTokenState(token);
     setGlobalAccessToken(token);
     setUser(newUser);
+    userRef.current = newUser;
+  }, []);
+
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
+
+  const broadcast = useCallback((message: AuthBroadcast) => {
+    channelRef.current?.postMessage(message);
+  }, []);
+
+  const fetchCurrentUser = useCallback(async (): Promise<AuthUser | null> => {
+    const meRes = await apiClient<{
+      success: boolean;
+      user: { id: string; email: string; role: string; name?: string; phone?: string | null };
+    }>('/api/v1/auth/me', {
+      skipAuthRefresh: true,
+    });
+
+    if (!meRes || !meRes.user) return null;
+    return {
+      id: meRes.user.id,
+      name: meRes.user.name || meRes.user.email.split('@')[0],
+      email: meRes.user.email,
+      role: meRes.user.role,
+      phone: meRes.user.phone || null,
+    };
   }, []);
 
   const restoreSession = useCallback(async (): Promise<boolean> => {
     try {
       // Check session storage first for seamless page reloads
       if (typeof window !== 'undefined') {
-        const storedToken = sessionStorage.getItem('shopkart_auth_token');
-        const storedUser = sessionStorage.getItem('shopkart_auth_user');
+        const storedToken = sessionStorage.getItem(TOKEN_STORAGE_KEY);
+        const storedUser = sessionStorage.getItem(USER_STORAGE_KEY);
         if (storedToken && storedUser) {
           try {
             const parsedUser = JSON.parse(storedUser);
             updateTokens(storedToken, parsedUser);
             return true;
           } catch {
-            sessionStorage.removeItem('shopkart_auth_token');
-            sessionStorage.removeItem('shopkart_auth_user');
+            clearStoredSession();
           }
         }
       }
@@ -101,26 +149,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setAccessTokenState(refreshRes.accessToken);
 
       // 2. Fetch current verified user info from backend
-      const meRes = await apiClient<{
-        success: boolean;
-        user: { id: string; email: string; role: string; name?: string; phone?: string | null };
-      }>('/api/v1/auth/me', {
-        skipAuthRefresh: true,
-      });
+      const restoredUser = await fetchCurrentUser();
 
-      if (meRes && meRes.user) {
-        const restoredUser: AuthUser = {
-          id: meRes.user.id,
-          name: meRes.user.name || meRes.user.email.split('@')[0],
-          email: meRes.user.email,
-          role: meRes.user.role,
-          phone: meRes.user.phone || null,
-        };
+      if (restoredUser) {
         updateTokens(refreshRes.accessToken, restoredUser);
-        if (typeof window !== 'undefined') {
-          sessionStorage.setItem('shopkart_auth_token', refreshRes.accessToken);
-          sessionStorage.setItem('shopkart_auth_user', JSON.stringify(restoredUser));
-        }
+        persistSession(refreshRes.accessToken, restoredUser);
         return true;
       }
 
@@ -130,7 +163,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       updateTokens(null, null);
       return false;
     }
-  }, [updateTokens]);
+  }, [updateTokens, fetchCurrentUser]);
 
   const refreshSession = useCallback(async (): Promise<boolean> => {
     return restoreSession();
@@ -150,13 +183,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       updateTokens(response.accessToken, response.user);
-      if (typeof window !== 'undefined') {
-        sessionStorage.setItem('shopkart_auth_token', response.accessToken);
-        sessionStorage.setItem('shopkart_auth_user', JSON.stringify(response.user));
-      }
+      persistSession(response.accessToken, response.user);
+      broadcast({ type: 'login', userId: response.user.id });
       return response.user;
     },
-    [updateTokens],
+    [updateTokens, broadcast],
   );
 
   const register = useCallback(
@@ -180,13 +211,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch {
       // Continue client cleanup even if network request fails
     } finally {
-      if (typeof window !== 'undefined') {
-        sessionStorage.removeItem('shopkart_auth_token');
-        sessionStorage.removeItem('shopkart_auth_user');
-      }
+      clearStoredSession();
       updateTokens(null, null);
+      broadcast({ type: 'logout' });
     }
-  }, [updateTokens]);
+  }, [updateTokens, broadcast]);
 
   const updateUserState = useCallback((updatedFields: Partial<AuthUser>) => {
     setUser((prev) => (prev ? { ...prev, ...updatedFields } : null));
@@ -216,9 +245,59 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Handle global background token refresh failures
   useEffect(() => {
     onAuthFailure(() => {
+      clearStoredSession();
       updateTokens(null, null);
     });
   }, [updateTokens]);
+
+  // Keep this tab's session in step with silent token refreshes. If the shared
+  // refresh cookie now belongs to a different account, adopt that account so the
+  // UI (and route guards) reflect the identity the backend actually sees.
+  useEffect(() => {
+    onTokenRefreshed(async (token, accountChanged) => {
+      if (!accountChanged && userRef.current) {
+        setAccessTokenState(token);
+        persistSession(token, userRef.current);
+        return;
+      }
+      try {
+        const currentUser = await fetchCurrentUser();
+        if (currentUser) {
+          updateTokens(token, currentUser);
+          persistSession(token, currentUser);
+          return;
+        }
+      } catch {
+        // Fall through to sign-out
+      }
+      clearStoredSession();
+      updateTokens(null, null);
+    });
+  }, [updateTokens, fetchCurrentUser]);
+
+  // Cross-tab sync: a login/logout in another tab replaces the shared refresh
+  // cookie, so this tab must drop its stale session and re-resolve it.
+  useEffect(() => {
+    if (typeof BroadcastChannel === 'undefined') return;
+    const channel = new BroadcastChannel(AUTH_CHANNEL_NAME);
+    channelRef.current = channel;
+
+    channel.onmessage = (event: MessageEvent<AuthBroadcast>) => {
+      const message = event.data;
+      if (message.type === 'logout') {
+        clearStoredSession();
+        updateTokens(null, null);
+      } else if (message.type === 'login' && userRef.current?.id !== message.userId) {
+        clearStoredSession();
+        void restoreSession();
+      }
+    };
+
+    return () => {
+      channel.close();
+      channelRef.current = null;
+    };
+  }, [updateTokens, restoreSession]);
 
   // Initial session restoration on app mount
   useEffect(() => {

@@ -13,6 +13,23 @@ export class ApiError extends Error {
 let inMemoryAccessToken: string | null = null;
 let refreshPromise: Promise<string | null> | null = null;
 let authFailureCallback: (() => void) | null = null;
+let tokenRefreshedCallback: ((token: string, accountChanged: boolean) => void) | null = null;
+
+export function getTokenSubject(token: string | null): string | null {
+  if (!token) return null;
+  try {
+    const payload = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    return JSON.parse(atob(payload)).sub ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export function onTokenRefreshed(
+  callback: (token: string, accountChanged: boolean) => void,
+): void {
+  tokenRefreshedCallback = callback;
+}
 
 export function getAccessToken(): string | null {
   return inMemoryAccessToken;
@@ -84,6 +101,7 @@ export async function apiClient<T = any>(
     // Deduplicate concurrent refresh calls
     if (!refreshPromise) {
       refreshPromise = (async () => {
+        const previousSubject = getTokenSubject(inMemoryAccessToken);
         try {
           const refreshRes = await fetch(
             `${API_BASE_URL.replace(/\/$/, '')}/api/v1/auth/refresh`,
@@ -106,7 +124,16 @@ export async function apiClient<T = any>(
           const refreshData = await refreshRes.json();
           const newToken = refreshData.accessToken || null;
           setAccessToken(newToken);
-          return newToken;
+          if (!newToken) return null;
+
+          // The refresh cookie is shared across tabs; if another tab signed in as a
+          // different account, never replay this tab's request under that identity.
+          const newSubject = getTokenSubject(newToken);
+          const accountChanged = Boolean(
+            previousSubject && newSubject && previousSubject !== newSubject,
+          );
+          tokenRefreshedCallback?.(newToken, accountChanged);
+          return accountChanged ? null : newToken;
         } catch {
           setAccessToken(null);
           if (authFailureCallback) {
