@@ -22,6 +22,9 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { Roles } from './decorators/roles.decorator';
+import { RateLimit } from './decorators/rate-limit.decorator';
+import { RateLimitGuard } from './guards/rate-limit.guard';
+import { UserRole } from '@shopkart/common';
 
 const REFRESH_COOKIE_NAME = 'refreshToken';
 const REFRESH_COOKIE_PATH = '/api/v1/auth';
@@ -37,7 +40,10 @@ export class AuthController {
     return this.authService.register(registerDto);
   }
 
+  // Per-IP limit complements the per-email lockout in AuthService.login.
   @Post('login')
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ name: 'login', limit: 30, windowSeconds: 60 })
   @HttpCode(HttpStatus.OK)
   async login(
     @Body() loginDto: LoginDto,
@@ -149,7 +155,7 @@ export class AuthController {
 
   @Get('admin-only')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
   @HttpCode(HttpStatus.OK)
   async adminOnlyEndpoint(@CurrentUser() user: any) {
     return {

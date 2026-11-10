@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { apiClient, ApiError } from '@/lib/api-client';
+import { getRoleHomePath } from '@/lib/roles';
 
 export function ProfileView() {
   const { user, updateUserState, refreshProfile, logout } = useAuth();
@@ -180,7 +181,7 @@ export function ProfileView() {
           </p>
         </div>
         <Link
-          href={user?.role === 'admin' ? '/admin/dashboard' : '/customer/dashboard'}
+          href={getRoleHomePath(user?.role)}
           className="text-sm font-semibold text-accent-600 hover:text-accent-700"
         >
           ← Return to Dashboard

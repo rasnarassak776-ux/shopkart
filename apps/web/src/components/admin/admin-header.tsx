@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { ChevronDownIcon, ExternalLinkIcon, LogoutIcon, MenuIcon, SettingsIcon, UserIcon } from '@/components/ui';
 import { AdminBreadcrumbs } from './admin-breadcrumbs';
 import { getAdminBreadcrumbs } from './admin-nav';
+import { UserRole } from '@shopkart/common';
 
 interface AdminHeaderProps {
   onOpenNavigation: () => void;
@@ -73,7 +74,7 @@ function AdminUserMenu({ onLogout, isLoggingOut }: Pick<AdminHeaderProps, 'onLog
               </Link>
             </li>
             <li>
-              <Link role="menuitem" href="/admin/settings" onClick={() => setOpen(false)} className="flex items-center gap-2 px-4 py-2.5 text-sm text-ink hover:bg-surface-muted">
+              <Link role="menuitem" href={user.role === UserRole.SUPERADMIN ? '/superadmin/settings' : '/admin/settings'} onClick={() => setOpen(false)} className="flex items-center gap-2 px-4 py-2.5 text-sm text-ink hover:bg-surface-muted">
                 <SettingsIcon className="h-4 w-4 text-ink-muted" />
                 Settings
               </Link>

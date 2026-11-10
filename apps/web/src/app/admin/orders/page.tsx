@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ProtectedRoute } from '@/components/protected-route';
 import { Container } from '@/components/ui';
 import { OrdersEmptyState } from '@/features/orders';
+import { ADMIN_ROLES } from '@/lib/roles';
 
 function AdminOrdersContent() {
   return (
@@ -42,7 +43,7 @@ function AdminOrdersContent() {
 
 export default function AdminOrdersPage() {
   return (
-    <ProtectedRoute allowedRoles={['admin']}>
+    <ProtectedRoute allowedRoles={ADMIN_ROLES}>
       <main className="min-h-screen bg-gray-50 py-8">
         <Container>
           <AdminOrdersContent />

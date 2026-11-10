@@ -16,6 +16,7 @@ import {
   onTokenRefreshed,
   ApiError,
 } from '../lib/api-client';
+import { restoreVerifiedSession } from '../lib/session-restore';
 
 const TOKEN_STORAGE_KEY = 'shopkart_auth_token';
 const USER_STORAGE_KEY = 'shopkart_auth_user';
@@ -40,7 +41,7 @@ export interface AuthUser {
   name: string;
   email: string;
   phone?: string | null;
-  role: 'customer' | 'admin' | string;
+  role: 'customer' | 'admin' | 'superadmin' | string;
   createdAt?: string;
 }
 
@@ -114,55 +115,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const restoreSession = useCallback(async (): Promise<boolean> => {
-    try {
-      // Check session storage first for seamless page reloads
-      if (typeof window !== 'undefined') {
-        const storedToken = sessionStorage.getItem(TOKEN_STORAGE_KEY);
-        const storedUser = sessionStorage.getItem(USER_STORAGE_KEY);
-        if (storedToken && storedUser) {
-          try {
-            const parsedUser = JSON.parse(storedUser);
-            updateTokens(storedToken, parsedUser);
-            return true;
-          } catch {
-            clearStoredSession();
-          }
-        }
-      }
+    // The cached token is reused for seamless reloads, but the user/role is always
+    // re-verified by the backend (/auth/me) rather than read from sessionStorage.
+    const restored = await restoreVerifiedSession<AuthUser>({
+      storedToken: typeof window !== 'undefined' ? sessionStorage.getItem(TOKEN_STORAGE_KEY) : null,
+      fetchUser: async (token) => {
+        setGlobalAccessToken(token);
+        return fetchCurrentUser();
+      },
+      refresh: async () => {
+        const refreshRes = await apiClient<{ success: boolean; accessToken: string }>(
+          '/api/v1/auth/refresh',
+          { method: 'POST', body: JSON.stringify({}), skipAuthRefresh: true },
+        );
+        return refreshRes?.accessToken || null;
+      },
+    });
 
-      // 1. Call refresh endpoint using HttpOnly cookie
-      const refreshRes = await apiClient<{
-        success: boolean;
-        accessToken: string;
-      }>('/api/v1/auth/refresh', {
-        method: 'POST',
-        body: JSON.stringify({}),
-        skipAuthRefresh: true,
-      });
-
-      if (!refreshRes || !refreshRes.accessToken) {
-        updateTokens(null, null);
-        return false;
-      }
-
-      setGlobalAccessToken(refreshRes.accessToken);
-      setAccessTokenState(refreshRes.accessToken);
-
-      // 2. Fetch current verified user info from backend
-      const restoredUser = await fetchCurrentUser();
-
-      if (restoredUser) {
-        updateTokens(refreshRes.accessToken, restoredUser);
-        persistSession(refreshRes.accessToken, restoredUser);
-        return true;
-      }
-
-      updateTokens(null, null);
-      return false;
-    } catch {
-      updateTokens(null, null);
-      return false;
+    if (restored) {
+      updateTokens(restored.token, restored.user);
+      persistSession(restored.token, restored.user);
+      return true;
     }
+
+    clearStoredSession();
+    updateTokens(null, null);
+    return false;
   }, [updateTokens, fetchCurrentUser]);
 
   const refreshSession = useCallback(async (): Promise<boolean> => {

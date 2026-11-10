@@ -1,4 +1,4 @@
-import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ROLES_KEY } from '../decorators/roles.decorator';
 
@@ -16,11 +16,12 @@ export class RolesGuard implements CanActivate {
       return true;
     }
 
+    // `user.role` is set by JwtStrategy from the database, never from the request body.
     const { user } = context.switchToHttp().getRequest();
-    if (!user || !user.role) {
-      return false;
+    if (!user || !user.role || !requiredRoles.includes(user.role)) {
+      throw new ForbiddenException('You do not have permission to perform this action.');
     }
 
-    return requiredRoles.includes(user.role);
+    return true;
   }
 }

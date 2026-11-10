@@ -4,11 +4,13 @@ import {
   DashboardIcon,
   PackageIcon,
   SettingsIcon,
+  ShieldIcon,
   ShoppingBagIcon,
   TagIcon,
   UsersIcon,
   type IconProps,
 } from '@/components/ui';
+import { UserRole } from '@shopkart/common';
 
 export type AdminNavAvailability = 'available' | 'next-phase' | 'coming-soon';
 
@@ -56,6 +58,25 @@ export const adminNavSections: AdminNavSection[] = [
   },
 ];
 
+/** Superadmin-only console sections (shown above the inherited admin sections). */
+export const superadminNavSections: AdminNavSection[] = [
+  {
+    title: 'Superadmin',
+    items: [
+      { label: 'Platform overview', href: '/superadmin/dashboard', icon: ShieldIcon, availability: 'available', exact: true },
+      { label: 'Admin accounts', href: '/superadmin/admins', icon: UsersIcon, availability: 'available' },
+      { label: 'Platform settings', href: '/superadmin/settings', icon: SettingsIcon, availability: 'available' },
+    ],
+  },
+];
+
+/** Console navigation for a verified role. Other roles get nothing (they never reach the console). */
+export function getConsoleNavSections(role: string | null | undefined): AdminNavSection[] {
+  if (role === UserRole.SUPERADMIN) return [...superadminNavSections, ...adminNavSections];
+  if (role === UserRole.ADMIN) return adminNavSections;
+  return [];
+}
+
 export function isNavItemActive(item: AdminNavItem, pathname: string): boolean {
   return item.exact ? pathname === item.href : pathname === item.href || pathname.startsWith(`${item.href}/`);
 }
@@ -67,8 +88,29 @@ export interface AdminBreadcrumb {
 
 const allNavItems = adminNavSections.flatMap((section) => section.items);
 
-/** Derives breadcrumbs for the current admin route. The last crumb has no href. */
+function getSuperadminBreadcrumbs(segments: string[]): AdminBreadcrumb[] {
+  const crumbs: AdminBreadcrumb[] = [{ label: 'Superadmin', href: '/superadmin/dashboard' }];
+  if (segments.length === 0 || segments[0] === 'dashboard') {
+    crumbs.push({ label: 'Overview' });
+  } else if (segments[0] === 'admins') {
+    crumbs.push({ label: 'Admin accounts', href: '/superadmin/admins' });
+    if (segments[1] === 'create') crumbs.push({ label: 'Create admin' });
+    else if (segments[1]) crumbs.push({ label: 'Admin details' });
+  } else if (segments[0] === 'settings') {
+    crumbs.push({ label: 'Platform settings' });
+  } else {
+    crumbs.push({ label: segments[0] });
+  }
+  const last = crumbs[crumbs.length - 1];
+  crumbs[crumbs.length - 1] = { label: last.label };
+  return crumbs;
+}
+
+/** Derives breadcrumbs for the current admin/superadmin route. The last crumb has no href. */
 export function getAdminBreadcrumbs(pathname: string): AdminBreadcrumb[] {
+  if (pathname === '/superadmin' || pathname.startsWith('/superadmin/')) {
+    return getSuperadminBreadcrumbs(pathname.replace(/\/+$/, '').split('/').filter(Boolean).slice(1));
+  }
   const crumbs: AdminBreadcrumb[] = [{ label: 'Admin', href: '/admin' }];
   const segments = pathname.replace(/\/+$/, '').split('/').filter(Boolean).slice(1);
 

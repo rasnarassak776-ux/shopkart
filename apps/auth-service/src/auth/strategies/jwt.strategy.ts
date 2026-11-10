@@ -5,12 +5,14 @@ import { ConfigService } from '@nestjs/config';
 import { JwtPayload } from '@shopkart/common';
 import { Request } from 'express';
 import { TokenService } from '../services/token.service';
+import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   constructor(
     private readonly configService: ConfigService,
     private readonly tokenService: TokenService,
+    private readonly prisma: PrismaService,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -52,10 +54,24 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       }
     }
 
+    // 3. Resolve identity from PostgreSQL so deactivations and role changes take
+    //    effect immediately and authorization never depends on a stale claim.
+    const user = payload.sub
+      ? await this.prisma.user.findUnique({
+          where: { id: payload.sub },
+          select: { id: true, email: true, name: true, isActive: true, role: { select: { name: true } } },
+        })
+      : null;
+
+    if (!user || !user.isActive) {
+      throw new UnauthorizedException('User account not found or deactivated.');
+    }
+
     return {
-      id: payload.sub,
-      email: payload.email,
-      role: payload.role,
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role.name,
     };
   }
 }

@@ -51,6 +51,12 @@ export interface RefreshResponse extends TokenPair {
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
+  private dummyPasswordHash: Promise<string> | null = null;
+
+  private getDummyPasswordHash(): Promise<string> {
+    this.dummyPasswordHash ??= this.passwordService.hash(crypto.randomBytes(16).toString('hex'));
+    return this.dummyPasswordHash;
+  }
 
   constructor(
     private readonly prisma: PrismaService,
@@ -201,28 +207,14 @@ export class AuthService {
       },
     });
 
-    if (!user) {
-      if (client) {
-        const attempts = await client.incr(rateLimitKey);
-        if (attempts === 1) await client.expire(rateLimitKey, 900);
-      }
-      throw new UnauthorizedException('Invalid email or password.');
-    }
-
-    // 2. Check active state
-    if (!user.isActive) {
-      throw new UnauthorizedException(
-        'Account is deactivated. Please contact support.',
-      );
-    }
-
-    // 3. Verify password hash using bcrypt
+    // 2. Verify password hash using bcrypt. Unknown emails are compared against a
+    //    dummy hash so response timing does not reveal whether an account exists.
     const isPasswordValid = await this.passwordService.compare(
       loginDto.password,
-      user.passwordHash,
+      user?.passwordHash ?? (await this.getDummyPasswordHash()),
     );
 
-    if (!isPasswordValid) {
+    if (!user || !isPasswordValid) {
       if (client) {
         const attempts = await client.incr(rateLimitKey);
         if (attempts === 1) await client.expire(rateLimitKey, 900);
@@ -233,6 +225,13 @@ export class AuthService {
     // Reset failed login counter on successful credential verification
     if (client) {
       await client.del(rateLimitKey);
+    }
+
+    // 3. Check active state (only disclosed once the correct password was supplied)
+    if (!user.isActive) {
+      throw new UnauthorizedException(
+        'Account is deactivated. Please contact support.',
+      );
     }
 
     // 4. Generate token pair (Access Token 15m + Refresh Token 7d) and store session in Redis

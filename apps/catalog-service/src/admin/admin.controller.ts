@@ -38,12 +38,12 @@ import {
 
 /**
  * Catalog administration API. Every route requires a valid access token
- * (JwtAuthGuard) issued by the auth service AND the `admin` role (RolesGuard),
- * enforced at class level so no handler can be accidentally left open.
+ * (JwtAuthGuard) issued by the auth service AND the `admin` or `superadmin` role
+ * (RolesGuard), enforced at class level so no handler can be accidentally left open.
  */
 @Controller('catalog/admin')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(UserRole.ADMIN)
+@Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
 export class AdminController {
   constructor(
     private readonly categoriesService: CategoriesService,

@@ -5,22 +5,19 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
 import { ApiError } from '@/lib/api-client';
+import { resolvePostLoginRedirect } from '@/lib/roles';
 
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const returnUrl = searchParams.get('returnUrl');
-  const { login, isAuthenticated, isLoading } = useAuth();
+  const { login, user, isAuthenticated, isLoading } = useAuth();
 
   React.useEffect(() => {
-    if (!isLoading && isAuthenticated) {
-      const destination =
-        returnUrl && returnUrl.startsWith('/') && !returnUrl.startsWith('/login') && !returnUrl.startsWith('/admin')
-          ? returnUrl
-          : '/customer/dashboard';
-      router.replace(destination);
+    if (!isLoading && isAuthenticated && user) {
+      router.replace(resolvePostLoginRedirect(user.role, returnUrl));
     }
-  }, [isLoading, isAuthenticated, returnUrl, router]);
+  }, [isLoading, isAuthenticated, user, returnUrl, router]);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -64,16 +61,8 @@ export function LoginForm() {
         password,
       });
 
-      // Role-based redirection based on backend response
-      if (user.role === 'admin') {
-        router.replace('/admin/dashboard');
-      } else {
-        const destination =
-          returnUrl && returnUrl.startsWith('/') && !returnUrl.startsWith('/login') && !returnUrl.startsWith('/admin')
-            ? returnUrl
-            : '/customer/dashboard';
-        router.replace(destination);
-      }
+      // Role-based redirection using the role verified by the backend
+      router.replace(resolvePostLoginRedirect(user.role, returnUrl));
     } catch (err: any) {
       if (err instanceof ApiError) {
         setServerError(err.message);

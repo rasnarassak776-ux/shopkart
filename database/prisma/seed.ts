@@ -25,6 +25,16 @@ async function main() {
     },
   });
 
+  // Superadmin role only. The superadmin *account* is provisioned separately via
+  // `npm run bootstrap:superadmin -w auth-service` (credentials from env vars).
+  const superadminRole = await prisma.role.upsert({
+    where: { name: "superadmin" },
+    update: {},
+    create: {
+      name: "superadmin",
+    },
+  });
+
   console.log("Roles seeded.");
 
   // 2. Categories
@@ -283,7 +293,7 @@ async function main() {
 
   // Avoid unused-variable warnings if strict TypeScript is enabled.
   console.log(
-    `Created or verified roles: ${customerRole.name}, ${adminRole.name}`,
+    `Created or verified roles: ${customerRole.name}, ${adminRole.name}, ${superadminRole.name}`,
   );
 }
 
