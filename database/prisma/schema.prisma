@@ -237,17 +237,21 @@ model Order {
 }
 
 model OrderItem {
-  id                  String   @id @default(uuid()) @db.Uuid
-  orderId             String   @map("order_id") @db.Uuid
-  productId           String   @map("product_id") @db.Uuid
-  productNameSnapshot String   @map("product_name_snapshot") @db.VarChar(180)
+  id                  String      @id @default(uuid()) @db.Uuid
+  orderId             String      @map("order_id") @db.Uuid
+  productId           String      @map("product_id") @db.Uuid
+  merchantId          String?     @map("merchant_id") @db.Uuid
+  productNameSnapshot String      @map("product_name_snapshot") @db.VarChar(180)
   quantity            Int
-  unitPriceSnapshot   Decimal  @map("unit_price_snapshot") @db.Decimal(12, 2)
-  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  unitPriceSnapshot   Decimal     @map("unit_price_snapshot") @db.Decimal(12, 2)
+  status              OrderStatus @default(PENDING) @map("status")
+  createdAt           DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
 
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@index([productId])
+  @@index([merchantId])
+  @@index([orderId, merchantId])
   @@map("order_items")
   @@schema("orders")
 }
@@ -270,14 +274,17 @@ model Payment {
 }
 
 model OrderStatusHistory {
-  id        String      @id @default(uuid()) @db.Uuid
-  orderId   String      @map("order_id") @db.Uuid
-  status    OrderStatus
-  changedAt DateTime    @default(now()) @map("changed_at") @db.Timestamptz(6)
+  id         String      @id @default(uuid()) @db.Uuid
+  orderId    String      @map("order_id") @db.Uuid
+  merchantId String?     @map("merchant_id") @db.Uuid
+  status     OrderStatus
+  notes      String?     @db.VarChar(255)
+  changedAt  DateTime    @default(now()) @map("changed_at") @db.Timestamptz(6)
 
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@index([orderId])
+  @@index([merchantId])
   @@map("order_status_history")
   @@schema("orders")
 }

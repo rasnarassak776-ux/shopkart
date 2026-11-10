@@ -100,4 +100,42 @@ export class InventoryService {
       });
     }
   }
+
+  /**
+   * Release reserved stock for specific products (used for merchant-level cancellation)
+   */
+  async releaseStockForItemsInTx(
+    tx: Prisma.TransactionClient,
+    orderId: string,
+    productIds: string[],
+  ): Promise<void> {
+    if (!productIds || productIds.length === 0) return;
+
+    const reservations = await tx.inventoryReservation.findMany({
+      where: {
+        orderId,
+        productId: { in: productIds },
+        status: { in: [ReservationStatus.RESERVED, ReservationStatus.CONFIRMED] },
+      },
+    });
+
+    for (const res of reservations) {
+      await tx.$executeRaw`
+        UPDATE inventory.inventory
+        SET available_quantity = available_quantity + ${res.quantity},
+            reserved_quantity = GREATEST(0, reserved_quantity - ${res.quantity}),
+            updated_at = NOW()
+        WHERE product_id = ${res.productId}::uuid
+      `;
+
+      await tx.inventoryReservation.update({
+        where: { id: res.id },
+        data: { status: ReservationStatus.RELEASED },
+      });
+
+      this.logger.log(
+        `Released ${res.quantity} units for order ${orderId}, product ${res.productId}`,
+      );
+    }
+  }
 }

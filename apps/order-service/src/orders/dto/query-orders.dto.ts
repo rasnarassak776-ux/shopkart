@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsEnum, IsInt, IsOptional, Max, Min } from 'class-validator';
+import { IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 import { OrderStatus } from '@prisma/client';
 
 export class QueryOrdersDto {
@@ -21,4 +21,12 @@ export class QueryOrdersDto {
     message: `status must be one of: ${Object.values(OrderStatus).join(', ')}`,
   })
   status?: OrderStatus;
+
+  @IsOptional()
+  @IsString()
+  search?: string;
+
+  @IsOptional()
+  @IsString()
+  merchantId?: string;
 }

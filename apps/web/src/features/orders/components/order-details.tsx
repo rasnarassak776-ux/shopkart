@@ -14,16 +14,26 @@ import {
   TruckIcon,
   ShieldIcon,
   AlertCircleIcon,
+  PackageIcon,
 } from '@/components/ui';
 import { textStyles } from '@/design-system/text-styles';
 import { cn } from '@/lib/cn';
-import { getOrderById, getAdminOrderById } from '../orders-api';
+import { getOrderById, getAdminOrderById, updateMerchantOrderStatus } from '../orders-api';
 import { presentationFeaturedProducts } from '@/features/storefront/presentation-data';
 import { formatCurrency, formatDate } from '../order-utils';
 import { OrderStatusBadge, PaymentStatusBadge } from './order-status-badge';
 import { OrderTimeline } from './order-timeline';
 import { OrderLoadingSkeleton, OrderErrorState } from '../order-states';
-import type { Order } from '../types';
+import type { Order, OrderStatus } from '../types';
+
+const ALLOWED_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
+  PENDING: ['CONFIRMED', 'CANCELLED'],
+  CONFIRMED: ['PROCESSING', 'CANCELLED'],
+  PROCESSING: ['SHIPPED', 'CANCELLED'],
+  SHIPPED: ['DELIVERED'],
+  DELIVERED: [],
+  CANCELLED: [],
+};
 
 interface OrderDetailsProps {
   orderId: string;
@@ -31,13 +41,26 @@ interface OrderDetailsProps {
   fetchOrder?: (id: string) => Promise<Order>;
   backHref?: string;
   backLabel?: string;
+  isMerchantView?: boolean;
 }
 
-export function OrderDetails({ orderId, fetchOrder: fetchOrderProp, backHref = '/customer/orders', backLabel = 'Back to My Orders' }: OrderDetailsProps) {
+export function OrderDetails({
+  orderId,
+  fetchOrder: fetchOrderProp,
+  backHref = '/customer/orders',
+  backLabel = 'Back to My Orders',
+  isMerchantView = false,
+}: OrderDetailsProps) {
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [selectedNextStatus, setSelectedNextStatus] = useState<OrderStatus | ''>('');
+  const [notes, setNotes] = useState('');
+  const [updateSuccess, setUpdateSuccess] = useState<string | null>(null);
+  const [updateError, setUpdateError] = useState<string | null>(null);
 
   const fetchOrder = async () => {
     try {
@@ -66,6 +89,29 @@ export function OrderDetails({ orderId, fetchOrder: fetchOrderProp, backHref = '
       navigator.clipboard.writeText(order.id);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const handleStatusUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!order?.id || !selectedNextStatus) return;
+    try {
+      setUpdatingStatus(true);
+      setUpdateError(null);
+      setUpdateSuccess(null);
+      const updated = await updateMerchantOrderStatus(
+        order.id,
+        selectedNextStatus,
+        notes.trim() || undefined,
+      );
+      setOrder(updated);
+      setUpdateSuccess(`Order status successfully updated to ${selectedNextStatus}.`);
+      setSelectedNextStatus('');
+      setNotes('');
+    } catch (err: any) {
+      setUpdateError(err.message || 'Failed to update order fulfillment status.');
+    } finally {
+      setUpdatingStatus(false);
     }
   };
 
@@ -251,6 +297,102 @@ export function OrderDetails({ orderId, fetchOrder: fetchOrderProp, backHref = '
 
         {/* Right Column (1 Col): Delivery & Payment Information */}
         <div className="space-y-6">
+          {/* Merchant Fulfillment Controls */}
+          {isMerchantView && (
+            <div className="rounded-2xl border border-line bg-surface p-5 sm:p-6 shadow-card space-y-4">
+              <div className="flex items-center gap-2 text-ink font-bold border-b border-line pb-3">
+                <PackageIcon className="h-5 w-5 text-accent-700" />
+                <h3 className={cn(textStyles.h3, 'text-ink')}>Fulfillment Management</h3>
+              </div>
+
+              {updateSuccess && (
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-800">
+                  ✓ {updateSuccess}
+                </div>
+              )}
+
+              {updateError && (
+                <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-800">
+                  ✕ {updateError}
+                </div>
+              )}
+
+              <div className="space-y-1.5 text-xs text-ink-muted">
+                <span className="block font-medium text-ink">Current Status:</span>
+                <div className="flex items-center gap-2">
+                  <OrderStatusBadge status={order.status} />
+                  {ALLOWED_TRANSITIONS[order.status]?.length === 0 && (
+                    <span className="text-[11px] text-ink-muted italic">(Terminal state)</span>
+                  )}
+                </div>
+              </div>
+
+              {ALLOWED_TRANSITIONS[order.status]?.length > 0 ? (
+                <form onSubmit={handleStatusUpdate} className="space-y-3 pt-2">
+                  <div>
+                    <label htmlFor="nextStatus" className="block text-xs font-semibold text-ink mb-1">
+                      Next Fulfillment Status
+                    </label>
+                    <select
+                      id="nextStatus"
+                      value={selectedNextStatus}
+                      onChange={(e) => setSelectedNextStatus(e.target.value as OrderStatus)}
+                      className="w-full rounded-lg border border-line-strong bg-surface px-3 py-2 text-xs font-medium text-ink shadow-xs focus:border-accent-600 focus:outline-none focus:ring-2 focus:ring-accent-600/20"
+                      required
+                    >
+                      <option value="" disabled>Select transition...</option>
+                      {ALLOWED_TRANSITIONS[order.status].map((s) => (
+                        <option key={s} value={s}>
+                          {s === 'CANCELLED' ? `❌ ${s} (Release stock)` : `➡️ ${s}`}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {selectedNextStatus === 'CANCELLED' && (
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 p-2.5 text-[11px] text-amber-900 leading-relaxed">
+                      ⚠️ <strong>Warning:</strong> Cancelling will release reserved inventory for your products in this order.
+                    </div>
+                  )}
+
+                  {selectedNextStatus === 'DELIVERED' && payment?.paymentMethod === 'COD' && (
+                    <div className="rounded-lg border border-blue-200 bg-blue-50 p-2.5 text-[11px] text-blue-900 leading-relaxed">
+                      ℹ️ <strong>Notice:</strong> Marking as Delivered will confirm handover and update COD collection status to Collected.
+                    </div>
+                  )}
+
+                  <div>
+                    <label htmlFor="statusNotes" className="block text-xs font-semibold text-ink mb-1">
+                      Admin / Audit Notes (Optional)
+                    </label>
+                    <input
+                      id="statusNotes"
+                      type="text"
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      placeholder="e.g. Dispatched via Express Tracking #12345"
+                      className="w-full rounded-lg border border-line-strong bg-surface px-3 py-2 text-xs text-ink placeholder:text-ink-muted focus:border-accent-600 focus:outline-none focus:ring-2 focus:ring-accent-600/20"
+                    />
+                  </div>
+
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    size="sm"
+                    className="w-full font-semibold"
+                    disabled={!selectedNextStatus || updatingStatus}
+                  >
+                    {updatingStatus ? 'Updating Status...' : 'Apply Status Transition'}
+                  </Button>
+                </form>
+              ) : (
+                <div className="rounded-lg border border-line bg-surface-muted/50 p-3 text-xs text-ink-muted">
+                  This order has reached its final lifecycle state ({order.status}). No further transitions can be applied.
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Delivery Address Snapshot Card */}
           <div className="rounded-2xl border border-line bg-surface p-5 sm:p-6 shadow-card space-y-4">
             <div className="flex items-center gap-2 text-ink font-bold border-b border-line pb-3">

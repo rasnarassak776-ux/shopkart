@@ -16,6 +16,20 @@ const nextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [
+      {
+        source: '/admin',
+        destination: '/merchant',
+        permanent: false,
+      },
+      {
+        source: '/admin/:path*',
+        destination: '/merchant/:path*',
+        permanent: false,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

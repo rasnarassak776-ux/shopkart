@@ -1,10 +1,14 @@
 export interface OrderItemResponse {
   id: string;
   productId: string;
+  merchantId?: string | null;
   name: string;
+  productNameSnapshot?: string;
   quantity: number;
   unitPrice: string;
+  unitPriceSnapshot?: string;
   totalPrice: string;
+  status?: string;
 }
 
 export interface OrderPaymentResponse {
@@ -33,7 +37,13 @@ export interface OrderResponse {
   };
   items: OrderItemResponse[];
   payment?: OrderPaymentResponse;
-  statusHistory?: Array<{ status: string; changedAt: string }>;
+  statusHistory?: Array<{
+    id?: string;
+    merchantId?: string | null;
+    notes?: string | null;
+    status: string;
+    changedAt: string;
+  }>;
   createdAt: string;
   updatedAt: string;
 }
