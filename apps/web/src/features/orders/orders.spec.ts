@@ -6,7 +6,13 @@ import {
   formatDate,
   formatShortDate,
 } from './order-utils';
-import { getCustomerOrders, getOrderById } from './orders-api';
+import {
+  getCustomerOrders,
+  getOrderById,
+  getMerchantOrders,
+  getMerchantOrderById,
+  updateMerchantOrderStatus,
+} from './orders-api';
 import * as apiClientModule from '@/lib/api-client';
 import type { Order, OrderStatus, PaginatedOrdersResponse } from './types';
 
@@ -218,6 +224,103 @@ describe('Member 3 – Phase 6: Customer Order Management Unit Tests', () => {
       const page3 = { page: 3, totalPages: 3 };
       expect(page3.page > 1).toBe(true);
       expect(page3.page < page3.totalPages).toBe(false);
+    });
+  });
+
+  describe('6. Merchant Order Management & Isolation Tests', () => {
+    it('should query getMerchantOrders with search, status, and merchantId parameters', async () => {
+      (apiClientModule.apiClient as jest.Mock).mockResolvedValue({
+        data: [mockOrder],
+        pagination: { page: 1, limit: 10, total: 1, totalPages: 1 },
+      });
+
+      await getMerchantOrders({
+        page: 1,
+        limit: 10,
+        status: 'PROCESSING',
+        search: '60e63cca',
+        merchantId: 'merchant-123',
+      });
+
+      expect(apiClientModule.apiClient).toHaveBeenCalledWith(
+        expect.stringMatching(/\/api\/v1\/orders\/merchant\?.*status=PROCESSING/),
+        undefined,
+      );
+      expect(apiClientModule.apiClient).toHaveBeenCalledWith(
+        expect.stringMatching(/search=60e63cca/),
+        undefined,
+      );
+      expect(apiClientModule.apiClient).toHaveBeenCalledWith(
+        expect.stringMatching(/merchantId=merchant-123/),
+        undefined,
+      );
+    });
+
+    it('should retrieve merchant-scoped order details using getMerchantOrderById', async () => {
+      (apiClientModule.apiClient as jest.Mock).mockResolvedValue(mockOrder);
+
+      const res = await getMerchantOrderById(mockOrder.id);
+
+      expect(apiClientModule.apiClient).toHaveBeenCalledWith(
+        expect.stringContaining(`/api/v1/orders/merchant/${mockOrder.id}`),
+        undefined,
+      );
+      expect(res.id).toBe(mockOrder.id);
+    });
+
+    it('should submit PATCH to updateMerchantOrderStatus with status and notes', async () => {
+      const updatedOrder = { ...mockOrder, status: 'CONFIRMED' as OrderStatus };
+      (apiClientModule.apiClient as jest.Mock).mockResolvedValue(updatedOrder);
+
+      const res = await updateMerchantOrderStatus(
+        mockOrder.id,
+        'CONFIRMED',
+        'Dispatched to hub',
+      );
+
+      expect(apiClientModule.apiClient).toHaveBeenCalledWith(
+        expect.stringContaining(`/api/v1/orders/merchant/${mockOrder.id}/status`),
+        expect.objectContaining({
+          method: 'PATCH',
+          body: JSON.stringify({ status: 'CONFIRMED', notes: 'Dispatched to hub' }),
+        }),
+      );
+      expect(res.status).toBe('CONFIRMED');
+    });
+
+    it('should calculate merchant subtotal strictly from merchant items in mixed orders', () => {
+      const mixedOrder: Order = {
+        ...mockOrder,
+        items: [
+          {
+            id: 'item-a',
+            productId: 'p-1',
+            name: 'Merchant A Product',
+            quantity: 2,
+            unitPrice: '100.00',
+            merchantId: 'merchant-a',
+          },
+          {
+            id: 'item-b',
+            productId: 'p-2',
+            name: 'Merchant B Product',
+            quantity: 3,
+            unitPrice: '50.00',
+            merchantId: 'merchant-b',
+          },
+        ],
+      };
+
+      // When scoped to Merchant A, only item-a should be counted
+      const merchantAItems = mixedOrder.items.filter((i) => i.merchantId === 'merchant-a');
+      const merchantASubtotal = merchantAItems.reduce(
+        (sum, item) => sum + parseFloat(item.unitPrice || '0') * item.quantity,
+        0,
+      );
+
+      expect(merchantAItems).toHaveLength(1);
+      expect(merchantASubtotal).toBe(200.0);
+      expect(formatCurrency(merchantASubtotal)).toMatch(/₹\s?200\.00/);
     });
   });
 });

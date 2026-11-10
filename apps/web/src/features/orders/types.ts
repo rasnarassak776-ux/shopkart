@@ -23,12 +23,14 @@ export interface OrderItem {
   id: string;
   orderId?: string;
   productId: string;
+  merchantId?: string | null;
   name?: string;
   productNameSnapshot?: string;
   quantity: number;
   unitPrice?: string;
   unitPriceSnapshot?: string;
   totalPrice?: string;
+  status?: OrderStatus;
   imageUrl?: string;
   createdAt?: string;
 }
@@ -47,7 +49,9 @@ export interface Payment {
 export interface OrderStatusHistory {
   id?: string;
   orderId?: string;
+  merchantId?: string | null;
   status: OrderStatus;
+  notes?: string | null;
   changedAt: string;
 }
 
@@ -71,6 +75,8 @@ export interface QueryOrdersDto {
   status?: OrderStatus;
   page?: number;
   limit?: number;
+  search?: string;
+  merchantId?: string;
 }
 
 export interface OrderPaginationMetadata {

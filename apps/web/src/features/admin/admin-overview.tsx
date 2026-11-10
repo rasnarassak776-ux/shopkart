@@ -32,9 +32,9 @@ interface ModuleStatus {
 
 const modules: ModuleStatus[] = [
   { name: 'Category management', description: 'Create, edit and publish catalog categories.', icon: TagIcon, status: 'live', href: '/merchant/categories' },
-  { name: 'Product management', description: 'Product CRUD, pricing and images.', icon: ShoppingBagIcon, status: 'next-phase', href: '/merchant/products' },
-  { name: 'Orders', description: 'Order processing and fulfilment (order service).', icon: ClipboardIcon, status: 'coming-soon' },
-  { name: 'Inventory', description: 'Stock levels and reservations (inventory service).', icon: PackageIcon, status: 'coming-soon' },
+  { name: 'Product management', description: 'Product CRUD, pricing and images.', icon: ShoppingBagIcon, status: 'live', href: '/merchant/products' },
+  { name: 'Orders', description: 'Order processing and fulfilment (order service).', icon: ClipboardIcon, status: 'live', href: '/merchant/orders' },
+  { name: 'Inventory', description: 'Stock levels and reservations (inventory service).', icon: PackageIcon, status: 'live', href: '/merchant/inventory' },
   { name: 'Customers', description: 'Customer accounts administration.', icon: UsersIcon, status: 'coming-soon' },
 ];
 
@@ -169,6 +169,8 @@ export function AdminOverview() {
           <h2 className="font-display text-base font-semibold text-ink">Quick actions</h2>
           <ul className="mt-4 grid gap-2">
             {[
+              { label: 'Manage orders', href: '/merchant/orders' },
+              { label: 'Manage products', href: '/merchant/products' },
               { label: 'Manage categories', href: '/merchant/categories' },
               { label: 'Add a new category', href: '/merchant/categories/new' },
               { label: 'Browse the live catalog', href: '/products' },

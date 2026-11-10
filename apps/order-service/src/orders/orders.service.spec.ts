@@ -20,24 +20,33 @@ describe('OrdersService', () => {
     payment: {
       findUnique: jest.fn(),
       create: jest.fn(),
+      updateMany: jest.fn(),
     },
     order: {
       findUnique: jest.fn(),
       findMany: jest.fn(),
       count: jest.fn(),
       create: jest.fn(),
+      update: jest.fn(),
     },
     orderItem: {
       create: jest.fn(),
+      updateMany: jest.fn(),
+      findMany: jest.fn(),
     },
     orderStatusHistory: {
       create: jest.fn(),
+      findMany: jest.fn(),
+    },
+    product: {
+      findUnique: jest.fn(),
+      findMany: jest.fn(),
     },
     cart: {
       findFirst: jest.fn(),
       updateMany: jest.fn(),
     },
-    $transaction: jest.fn(),
+    $transaction: jest.fn((cb) => (typeof cb === 'function' ? cb(mockPrismaService) : Promise.all(cb))),
   };
 
   const mockAuthClient = {
@@ -55,6 +64,7 @@ describe('OrdersService', () => {
 
   const mockInventoryService = {
     reserveStockInTx: jest.fn(),
+    releaseStockForItemsInTx: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -71,6 +81,9 @@ describe('OrdersService', () => {
 
     service = module.get<OrdersService>(OrdersService);
     jest.clearAllMocks();
+    mockPrismaService.$transaction.mockImplementation((cb: any) =>
+      typeof cb === 'function' ? cb(mockPrismaService) : Promise.all(cb),
+    );
   });
 
   it('should be defined', () => {
@@ -480,6 +493,216 @@ describe('OrdersService', () => {
       expect(result.data).toEqual([]);
       expect(result.pagination.total).toBe(0);
       expect(result.pagination.totalPages).toBe(1);
+    });
+  });
+
+  describe('Merchant Order Management', () => {
+    const merchantUser = { id: 'merchant-aaa', role: 'merchant' };
+    const superadminUser = { id: 'superadmin-1', role: 'superadmin' };
+
+    const mockOrderRaw = {
+      id: '11111111-2222-3333-4444-555555555555',
+      userId: 'customer-1',
+      status: OrderStatus.PENDING,
+      totalAmount: new Prisma.Decimal('250.00'),
+      addressSnapshot: { fullName: 'Customer Name' },
+      createdAt: new Date('2026-11-10T10:00:00Z'),
+      updatedAt: new Date('2026-11-10T10:00:00Z'),
+      payment: {
+        paymentMethod: PaymentMethod.COD,
+        paymentStatus: PaymentStatus.COD_PENDING,
+        amount: new Prisma.Decimal('250.00'),
+      },
+      items: [
+        {
+          id: 'item-1',
+          productId: 'prod-merchant-a',
+          merchantId: 'merchant-aaa',
+          productNameSnapshot: 'Merchant A Product',
+          quantity: 2,
+          unitPriceSnapshot: new Prisma.Decimal('100.00'),
+          status: OrderStatus.PENDING,
+        },
+        {
+          id: 'item-2',
+          productId: 'prod-merchant-b',
+          merchantId: 'merchant-bbb',
+          productNameSnapshot: 'Merchant B Product',
+          quantity: 1,
+          unitPriceSnapshot: new Prisma.Decimal('50.00'),
+          status: OrderStatus.PENDING,
+        },
+      ],
+      statusHistory: [
+        {
+          id: 'hist-1',
+          status: OrderStatus.PENDING,
+          createdAt: new Date('2026-11-10T10:00:00Z'),
+          notes: 'Order placed',
+        },
+      ],
+    };
+
+    describe('getMerchantOrders', () => {
+      it('should isolate orders and items strictly for calling merchant', async () => {
+        mockPrismaService.product.findMany.mockResolvedValue([{ id: 'prod-merchant-a' }]);
+        mockPrismaService.order.findMany.mockResolvedValue([mockOrderRaw]);
+        mockPrismaService.order.count.mockResolvedValue(1);
+
+        const result = await service.getMerchantOrders(merchantUser, { page: 1, limit: 10 });
+
+        expect(result.data).toHaveLength(1);
+        const order = result.data[0];
+        // Only merchant-aaa item should be visible
+        expect(order.items).toHaveLength(1);
+        expect(order.items[0].merchantId).toBe('merchant-aaa');
+        // Merchant subtotal should be 2 * 100 = 200.00, not 250.00
+        expect(order.totalAmount).toBe('200.00');
+        expect(order.itemCount).toBe(2);
+      });
+
+      it('should allow superadmin platform-wide order visibility', async () => {
+        mockPrismaService.order.findMany.mockResolvedValue([mockOrderRaw]);
+        mockPrismaService.order.count.mockResolvedValue(1);
+
+        const result = await service.getMerchantOrders(superadminUser, { page: 1, limit: 10 });
+
+        expect(result.data).toHaveLength(1);
+        // Superadmin sees all items
+        expect(result.data[0].items).toHaveLength(2);
+        expect(result.data[0].totalAmount).toBe('250.00');
+      });
+    });
+
+    describe('getMerchantOrderById', () => {
+      it('should return order details scoped to calling merchant', async () => {
+        mockPrismaService.product.findMany.mockResolvedValue([{ id: 'prod-merchant-a' }]);
+        mockPrismaService.order.findUnique.mockResolvedValue(mockOrderRaw);
+
+        const result = await service.getMerchantOrderById(
+          merchantUser,
+          '11111111-2222-3333-4444-555555555555',
+        );
+
+        expect(result.id).toBe(mockOrderRaw.id);
+        expect(result.items).toHaveLength(1);
+        expect(result.items[0].name).toBe('Merchant A Product');
+        expect(result.totalAmount).toBe('200.00');
+      });
+
+      it('should throw NotFoundException if merchant owns none of the items in the order', async () => {
+        mockPrismaService.product.findMany.mockResolvedValue([]);
+        mockPrismaService.order.findUnique.mockResolvedValue(mockOrderRaw);
+
+        const otherMerchant = { id: 'merchant-stranger', role: 'merchant' };
+
+        await expect(
+          service.getMerchantOrderById(
+            otherMerchant,
+            '11111111-2222-3333-4444-555555555555',
+          ),
+        ).rejects.toThrow(NotFoundException);
+      });
+    });
+
+    describe('updateMerchantOrderStatus', () => {
+      it('should allow valid transition from PENDING to CONFIRMED for merchant items', async () => {
+        mockPrismaService.product.findMany.mockResolvedValue([{ id: 'prod-merchant-a' }]);
+        mockPrismaService.order.findUnique.mockResolvedValue(mockOrderRaw);
+        mockPrismaService.orderItem.updateMany.mockResolvedValue({ count: 1 });
+        mockPrismaService.orderStatusHistory.create.mockResolvedValue({});
+        mockPrismaService.orderItem.findMany.mockResolvedValue([
+          { ...mockOrderRaw.items[0], status: OrderStatus.CONFIRMED },
+          mockOrderRaw.items[1],
+        ]);
+        mockPrismaService.order.update.mockResolvedValue({});
+
+        const updated = await service.updateMerchantOrderStatus(
+          merchantUser,
+          '11111111-2222-3333-4444-555555555555',
+          { status: OrderStatus.CONFIRMED, notes: 'Merchant accepted order' },
+        );
+
+        expect(mockPrismaService.orderItem.updateMany).toHaveBeenCalledWith({
+          where: { id: { in: ['item-1'] } },
+          data: { status: OrderStatus.CONFIRMED },
+        });
+        expect(mockPrismaService.orderStatusHistory.create).toHaveBeenCalled();
+      });
+
+      it('should reject invalid lifecycle transition (PENDING -> DELIVERED) with BadRequestException', async () => {
+        mockPrismaService.product.findMany.mockResolvedValue([{ id: 'prod-merchant-a' }]);
+        mockPrismaService.order.findUnique.mockResolvedValue(mockOrderRaw);
+
+        await expect(
+          service.updateMerchantOrderStatus(
+            merchantUser,
+            '11111111-2222-3333-4444-555555555555',
+            { status: OrderStatus.DELIVERED },
+          ),
+        ).rejects.toThrow(BadRequestException);
+      });
+
+      it('should release inventory for only cancelled merchant items upon CANCELLED transition', async () => {
+        mockPrismaService.product.findMany.mockResolvedValue([{ id: 'prod-merchant-a' }]);
+        mockPrismaService.order.findUnique.mockResolvedValue(mockOrderRaw);
+        mockPrismaService.orderItem.updateMany.mockResolvedValue({ count: 1 });
+        mockPrismaService.orderStatusHistory.create.mockResolvedValue({});
+        mockPrismaService.orderItem.findMany.mockResolvedValue([
+          { ...mockOrderRaw.items[0], status: OrderStatus.CANCELLED },
+          mockOrderRaw.items[1],
+        ]);
+        mockPrismaService.order.update.mockResolvedValue({});
+
+        await service.updateMerchantOrderStatus(
+          merchantUser,
+          '11111111-2222-3333-4444-555555555555',
+          { status: OrderStatus.CANCELLED, notes: 'Out of stock' },
+        );
+
+        expect(mockInventoryService.releaseStockForItemsInTx).toHaveBeenCalledWith(
+          expect.anything(),
+          mockOrderRaw.id,
+          ['prod-merchant-a'],
+        );
+      });
+
+      it('should trigger COD_COLLECTED payment update when all order items reach DELIVERED', async () => {
+        const shippedOrderRaw = {
+          ...mockOrderRaw,
+          status: OrderStatus.SHIPPED,
+          items: [
+            { ...mockOrderRaw.items[0], status: OrderStatus.SHIPPED },
+          ],
+        };
+
+        mockPrismaService.product.findMany.mockResolvedValue([{ id: 'prod-merchant-a' }]);
+        mockPrismaService.order.findUnique.mockResolvedValue(shippedOrderRaw);
+        mockPrismaService.orderItem.updateMany.mockResolvedValue({ count: 1 });
+        mockPrismaService.orderStatusHistory.create.mockResolvedValue({});
+        mockPrismaService.orderItem.findMany.mockResolvedValue([
+          { ...shippedOrderRaw.items[0], status: OrderStatus.DELIVERED },
+        ]);
+        mockPrismaService.payment.updateMany.mockResolvedValue({ count: 1 });
+        mockPrismaService.order.update.mockResolvedValue({});
+
+        await service.updateMerchantOrderStatus(
+          merchantUser,
+          '11111111-2222-3333-4444-555555555555',
+          { status: OrderStatus.DELIVERED },
+        );
+
+        expect(mockPrismaService.payment.updateMany).toHaveBeenCalledWith({
+          where: {
+            orderId: shippedOrderRaw.id,
+            paymentMethod: PaymentMethod.COD,
+            paymentStatus: PaymentStatus.COD_PENDING,
+          },
+          data: {
+            paymentStatus: PaymentStatus.COD_COLLECTED,
+          },
+        });
+      });
     });
   });
 });
