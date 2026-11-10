@@ -10,9 +10,9 @@ import { AdminSidebar } from './admin-sidebar';
 const COLLAPSED_STORAGE_KEY = 'shopkart_admin_sidebar_collapsed';
 
 /**
- * Admin console shell: fixed (collapsible) sidebar on desktop, drawer navigation
+ * Merchant console shell: fixed (collapsible) sidebar on desktop, drawer navigation
  * on tablet/mobile, sticky top bar. Route protection is applied by the
- * `/admin` route layout via the shared ProtectedRoute component.
+ * `/merchant` route layout via the shared ProtectedRoute component.
  */
 export function AdminLayout({ children }: { children: React.ReactNode }) {
   const { logout } = useAuth();
@@ -62,7 +62,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen flex-1 bg-canvas">
       <a
-        href="#admin-content"
+        href="#merchant-content"
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:rounded-lg focus:bg-surface focus:px-4 focus:py-2 focus:shadow-overlay"
       >
         Skip to content
@@ -83,7 +83,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       </aside>
 
       {drawerOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label="Admin navigation">
+        <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label="Merchant navigation">
           <div className="absolute inset-0 bg-primary/40 backdrop-blur-[2px]" onClick={closeDrawer} aria-hidden="true" />
           <div ref={drawerRef} className="absolute inset-y-0 left-0 w-[85%] max-w-xs shadow-overlay">
             <AdminSidebar onClose={closeDrawer} onLogout={handleLogout} isLoggingOut={isLoggingOut} />
@@ -93,7 +93,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
 
       <div className={cn('flex min-w-0 flex-1 flex-col transition-[padding] duration-200', collapsed ? 'lg:pl-[76px]' : 'lg:pl-64')}>
         <AdminHeader onOpenNavigation={() => setDrawerOpen(true)} onLogout={handleLogout} isLoggingOut={isLoggingOut} />
-        <div id="admin-content" className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+        <div id="merchant-content" className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
           {children}
         </div>
       </div>

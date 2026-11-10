@@ -21,7 +21,7 @@ import { cn } from '@/lib/cn';
 import { getAdminCategories, setAdminCategoryStatus } from './admin-catalog-api';
 import { filterCategories, type CategoryStatusFilter } from './category-utils';
 import type { AdminCategory } from './types';
-import { useAdminToasts } from './use-admin-toasts';
+import { useAdminToasts } from './use-merchant-toasts';
 
 const SAVED_MESSAGES: Record<string, string> = {
   created: 'Category created successfully.',
@@ -48,7 +48,7 @@ function RowActions({ category, pending, onToggle }: RowActionsProps) {
   return (
     <div className="flex items-center justify-end gap-1.5">
       <Link
-        href={`/admin/categories/${category.id}/edit`}
+        href={`/merchant/categories/${category.id}/edit`}
         className={buttonClasses({ variant: 'ghost', size: 'sm', className: 'h-10 px-3' })}
         aria-label={`Edit ${category.name}`}
       >
@@ -99,7 +99,7 @@ export function CategoryManager() {
   useEffect(() => {
     if (saved && SAVED_MESSAGES[saved]) {
       showToast(SAVED_MESSAGES[saved]);
-      router.replace('/admin/categories', { scroll: false });
+      router.replace('/merchant/categories', { scroll: false });
     }
   }, [saved, showToast, router]);
 
@@ -133,7 +133,7 @@ export function CategoryManager() {
         title="Categories"
         description="Organise the storefront catalog. Inactive categories are hidden from customers but keep their products and subcategories."
         actions={
-          <Link href="/admin/categories/new" className={buttonClasses({ variant: 'accent', size: 'md' })}>
+          <Link href="/merchant/categories/new" className={buttonClasses({ variant: 'accent', size: 'md' })}>
             <PlusIcon className="h-4 w-4" />
             New category
           </Link>
@@ -193,7 +193,7 @@ export function CategoryManager() {
               description="Create your first category to start organising the catalog."
               className="border-0 shadow-none"
               action={
-                <Link href="/admin/categories/new" className={buttonClasses({ size: 'sm' })}>
+                <Link href="/merchant/categories/new" className={buttonClasses({ size: 'sm' })}>
                   <PlusIcon className="h-4 w-4" />
                   New category
                 </Link>

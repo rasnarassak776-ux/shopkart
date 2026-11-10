@@ -17,7 +17,7 @@ import {
 } from '@/components/ui';
 import { textStyles } from '@/design-system/text-styles';
 import { cn } from '@/lib/cn';
-import { getOrderById } from '../orders-api';
+import { getOrderById, getAdminOrderById } from '../orders-api';
 import { presentationFeaturedProducts } from '@/features/storefront/presentation-data';
 import { formatCurrency, formatDate } from '../order-utils';
 import { OrderStatusBadge, PaymentStatusBadge } from './order-status-badge';
@@ -27,9 +27,13 @@ import type { Order } from '../types';
 
 interface OrderDetailsProps {
   orderId: string;
+  /** Console callers (merchant/superadmin) fetch via the admin-scoped endpoint. */
+  fetchOrder?: (id: string) => Promise<Order>;
+  backHref?: string;
+  backLabel?: string;
 }
 
-export function OrderDetails({ orderId }: OrderDetailsProps) {
+export function OrderDetails({ orderId, fetchOrder: fetchOrderProp, backHref = '/customer/orders', backLabel = 'Back to My Orders' }: OrderDetailsProps) {
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -39,7 +43,7 @@ export function OrderDetails({ orderId }: OrderDetailsProps) {
     try {
       setLoading(true);
       setError(null);
-      const data = await getOrderById(orderId);
+      const data = await (fetchOrderProp ?? getOrderById)(orderId);
       setOrder(data);
     } catch (err: any) {
       setError(
@@ -69,10 +73,10 @@ export function OrderDetails({ orderId }: OrderDetailsProps) {
     return (
       <div className="py-6 sm:py-10 space-y-6">
         <div className="flex items-center gap-3">
-          <Link href="/customer/orders">
+          <Link href={backHref}>
             <Button variant="secondary" size="sm">
               <ChevronLeftIcon className="mr-1 h-4 w-4" />
-              Back to My Orders
+              {backLabel}
             </Button>
           </Link>
         </div>
@@ -84,10 +88,10 @@ export function OrderDetails({ orderId }: OrderDetailsProps) {
   if (error || !order) {
     return (
       <div className="py-6 sm:py-10 space-y-6">
-        <Link href="/customer/orders">
+        <Link href={backHref}>
           <Button variant="secondary" size="sm">
             <ChevronLeftIcon className="mr-1 h-4 w-4" />
-            Back to My Orders
+            {backLabel}
           </Button>
         </Link>
         <OrderErrorState
@@ -112,10 +116,10 @@ export function OrderDetails({ orderId }: OrderDetailsProps) {
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <Link
-              href="/customer/orders"
+              href={backHref}
               className="text-xs font-semibold text-accent-700 hover:text-accent-800 transition-colors"
             >
-              ← Back to My Orders
+              ← {backLabel}
             </Link>
           </div>
           <div className="flex flex-wrap items-center gap-3">

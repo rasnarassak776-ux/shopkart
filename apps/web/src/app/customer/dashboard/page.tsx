@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ProtectedRoute } from '@/components/protected-route';
 import { useAuth } from '@/hooks/use-auth';
+import { CUSTOMER_ROLES } from '@/lib/roles';
 
 function CustomerDashboardContent() {
   const { user, logout } = useAuth();
@@ -95,7 +96,7 @@ function CustomerDashboardContent() {
             </li>
             <li>
               <Link
-                href="/profile"
+                href="/customer/profile"
                 className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 text-gray-700 font-medium group"
               >
                 <span>Manage Profile</span>
@@ -104,10 +105,19 @@ function CustomerDashboardContent() {
             </li>
             <li>
               <Link
-                href="/addresses"
+                href="/customer/addresses"
                 className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 text-gray-700 font-medium group"
               >
                 <span>Saved Addresses</span>
+                <span className="text-gray-400 group-hover:text-accent-600">→</span>
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/customer/cart"
+                className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 text-gray-700 font-medium group"
+              >
+                <span>My Cart</span>
                 <span className="text-gray-400 group-hover:text-accent-600">→</span>
               </Link>
             </li>
@@ -120,7 +130,7 @@ function CustomerDashboardContent() {
 
 export default function CustomerDashboardPage() {
   return (
-    <ProtectedRoute allowedRoles={['customer']}>
+    <ProtectedRoute allowedRoles={CUSTOMER_ROLES}>
       <CustomerDashboardContent />
     </ProtectedRoute>
   );

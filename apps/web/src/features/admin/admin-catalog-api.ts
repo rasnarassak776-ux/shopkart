@@ -14,19 +14,19 @@ import type {
 } from './types';
 
 /**
- * Admin catalog endpoints. All calls go through the centralized apiClient, which
+ * Merchant catalog endpoints. All calls go through the centralized apiClient, which
  * attaches the in-memory access token and transparently refreshes on 401.
- * The catalog service enforces JWT + admin role on every route server-side.
+ * The catalog service enforces JWT + merchant role on every route server-side.
  */
 const ADMIN_BASE = `${CATALOG_API_URL}/api/v1/catalog/admin`;
 
-// ---------------- Admin Stats ----------------
+// ---------------- Merchant Stats ----------------
 
 export function getAdminCatalogStats(init?: RequestInit): Promise<CatalogAdminStats> {
   return apiClient<CatalogAdminStats>(`${ADMIN_BASE}/stats`, init);
 }
 
-// ---------------- Admin Categories ----------------
+// ---------------- Merchant Categories ----------------
 
 export function getAdminCategories(init?: RequestInit): Promise<AdminCategory[]> {
   return apiClient<AdminCategory[]>(`${ADMIN_BASE}/categories`, init);
@@ -57,7 +57,7 @@ export function setAdminCategoryStatus(id: string, isActive: boolean): Promise<A
   });
 }
 
-// ---------------- Admin Products ----------------
+// ---------------- Merchant Products ----------------
 
 export function getAdminProducts(
   params?: AdminProductsQuery,
@@ -150,3 +150,34 @@ export function setPrimaryProductImage(
   );
 }
 
+
+// ---------------- Inventory ----------------
+
+export interface AdminInventoryItem {
+  productId: string;
+  name: string;
+  sku: string;
+  brand: string | null;
+  isActive: boolean;
+  merchantId: string | null;
+  availableQuantity: number;
+  reservedQuantity: number;
+  updatedAt: string;
+}
+
+export function getAdminInventory(init?: RequestInit): Promise<AdminInventoryItem[]> {
+  return apiClient<AdminInventoryItem[]>(`${ADMIN_BASE}/inventory`, init);
+}
+
+export function updateAdminInventory(
+  productId: string,
+  availableQuantity: number,
+): Promise<AdminInventoryItem> {
+  return apiClient<AdminInventoryItem>(
+    `${ADMIN_BASE}/inventory/${encodeURIComponent(productId)}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify({ availableQuantity }),
+    },
+  );
+}

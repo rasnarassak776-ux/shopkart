@@ -34,21 +34,22 @@ describe('AdminController authorization', () => {
     ]);
   });
 
-  it('requires the admin role on every handler and none are public', () => {
+  it('requires the merchant or superadmin role on every handler and none are public', () => {
     expect(handlers.length).toBeGreaterThan(0);
     for (const handler of handlers) {
       expect(
         reflector.getAllAndOverride(ROLES_KEY, [handler, AdminController]),
-      ).toEqual(['admin']);
+      ).toEqual(['merchant', 'superadmin']);
       expect(
         reflector.getAllAndOverride(IS_PUBLIC_KEY, [handler, AdminController]),
       ).toBeFalsy();
     }
   });
 
-  it('allows admins', () => {
+  it('allows merchants and superadmins', () => {
     for (const handler of handlers) {
-      expect(rolesGuard.canActivate(contextFor(handler, { role: 'admin' }))).toBe(true);
+      expect(rolesGuard.canActivate(contextFor(handler, { role: 'merchant' }))).toBe(true);
+      expect(rolesGuard.canActivate(contextFor(handler, { role: 'superadmin' }))).toBe(true);
     }
   });
 

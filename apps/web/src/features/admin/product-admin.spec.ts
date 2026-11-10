@@ -32,7 +32,7 @@ jest.mock('@/lib/api-client', () => {
 
 const { apiClient, ApiError } = jest.requireMock('@/lib/api-client');
 
-describe('Member 2 — Phase 3: Admin Product Management Frontend Tests', () => {
+describe('Member 2 — Phase 3: Merchant Product Management Frontend Tests', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -85,7 +85,7 @@ describe('Member 2 — Phase 3: Admin Product Management Frontend Tests', () => 
     },
   };
 
-  describe('Admin Catalog API - Product Operations', () => {
+  describe('Merchant Catalog API - Product Operations', () => {
     it('getAdminProducts builds query string with filters, sort and pagination', async () => {
       apiClient.mockResolvedValueOnce({
         data: [mockProduct],
@@ -236,7 +236,7 @@ describe('Member 2 — Phase 3: Admin Product Management Frontend Tests', () => 
     });
   });
 
-  describe('Admin Catalog API - Product Image Management', () => {
+  describe('Merchant Catalog API - Product Image Management', () => {
     it('uploadProductImages sends FormData with files to product images endpoint', async () => {
       const mockImages = [
         {

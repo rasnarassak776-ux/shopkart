@@ -61,6 +61,26 @@ model Address {
   @@schema("auth")
 }
 
+// Append-only trail of privileged account actions (admin creation, status
+// changes, superadmin bootstrap). User ids are stored without foreign keys so
+// entries survive account deletion.
+model AuditLog {
+  id           String   @id @default(uuid()) @db.Uuid
+  actorId      String?  @map("actor_id") @db.Uuid
+  action       String   @db.VarChar(60)
+  targetUserId String?  @map("target_user_id") @db.Uuid
+  metadata     Json?
+  ipAddress    String?  @map("ip_address") @db.VarChar(64)
+  userAgent    String?  @map("user_agent") @db.VarChar(255)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([actorId])
+  @@index([targetUserId])
+  @@index([createdAt])
+  @@map("audit_logs")
+  @@schema("auth")
+}
+
 // ---------------- CATALOG ----------------
 
 model Category {
@@ -85,6 +105,9 @@ model Category {
 model Product {
   id          String   @id @default(uuid()) @db.Uuid
   categoryId  String   @map("category_id") @db.Uuid
+  // Owning merchant (auth.users.id). NULL for platform-owned legacy products,
+  // which only superadmins can manage.
+  merchantId  String?  @map("merchant_id") @db.Uuid
   name        String   @db.VarChar(180)
   slug        String?  @unique @db.VarChar(200)
   sku         String   @unique @db.VarChar(80)
@@ -100,6 +123,7 @@ model Product {
 
   @@index([categoryId])
   @@index([categoryId, isActive])
+  @@index([merchantId])
   @@index([name])
   @@map("products")
   @@schema("catalog")

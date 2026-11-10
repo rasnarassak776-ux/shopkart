@@ -3,12 +3,18 @@
 import React, { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '../hooks/use-auth';
+import { getRoleHomePath, hasRole } from '../lib/roles';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  allowedRoles?: string[];
+  allowedRoles?: readonly string[];
 }
 
+/**
+ * Client-side gate for authenticated pages. `user.role` comes from the backend
+ * (login response or /auth/me on restore), and every API behind these pages
+ * enforces the same roles server-side — this component is a UX layer only.
+ */
 export function ProtectedRoute({
   children,
   allowedRoles,
@@ -16,6 +22,8 @@ export function ProtectedRoute({
   const { user, isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const isRestricted = Boolean(allowedRoles && allowedRoles.length > 0);
+  const isAuthorized = !isRestricted || (user ? hasRole(user.role, allowedRoles!) : false);
 
   useEffect(() => {
     if (isLoading) return;
@@ -26,17 +34,11 @@ export function ProtectedRoute({
       return;
     }
 
-    if (allowedRoles && allowedRoles.length > 0 && user) {
-      const hasAllowedRole = allowedRoles.includes(user.role);
-      if (!hasAllowedRole) {
-        if (user.role === 'admin') {
-          router.replace('/admin/dashboard');
-        } else {
-          router.replace('/customer/dashboard');
-        }
-      }
+    if (user && !isAuthorized) {
+      // A role's home path is never guarded against that role, so this cannot loop.
+      router.replace(getRoleHomePath(user.role));
     }
-  }, [isAuthenticated, isLoading, user, allowedRoles, router, pathname]);
+  }, [isAuthenticated, isLoading, user, isAuthorized, router, pathname]);
 
   if (isLoading) {
     return (
@@ -58,7 +60,7 @@ export function ProtectedRoute({
     );
   }
 
-  if (allowedRoles && allowedRoles.length > 0 && user && !allowedRoles.includes(user.role)) {
+  if (user && !isAuthorized) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center p-6 text-center">
         <div className="rounded-full bg-red-100 p-3 text-red-600">
@@ -71,7 +73,7 @@ export function ProtectedRoute({
           Your current account role (<span className="font-semibold">{user.role}</span>) does not have permission to view this section.
         </p>
         <button
-          onClick={() => router.push(user.role === 'admin' ? '/admin/dashboard' : '/customer/dashboard')}
+          onClick={() => router.push(getRoleHomePath(user.role))}
           className="mt-6 inline-flex items-center rounded-md bg-accent-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-accent-700"
         >
           Return to Dashboard

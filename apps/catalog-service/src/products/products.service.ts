@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { UserRole } from '@shopkart/common';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   QueryProductsDto,
@@ -35,6 +36,15 @@ const productInclude = {
     orderBy: [{ isPrimary: 'desc' as const }, { displayOrder: 'asc' as const }],
   },
 };
+
+/** Authenticated console caller. `id` is the merchant's user id from the JWT. */
+export interface ConsoleActor {
+  id: string;
+  role: string;
+}
+
+/** Callers without an actor context (tests, internal jobs) get platform-wide access. */
+const PLATFORM_ACTOR: ConsoleActor = { id: '', role: UserRole.SUPERADMIN };
 
 @Injectable()
 export class ProductsService {
@@ -199,6 +209,33 @@ export class ProductsService {
 
   // ---------------- Admin Product Management ----------------
 
+  /** Merchants are confined to their own products; superadmins see everything. */
+  private isPlatformAdmin(actor: ConsoleActor): boolean {
+    return actor.role === UserRole.SUPERADMIN;
+  }
+
+  private scopeWhere(actor: ConsoleActor): Prisma.ProductWhereInput {
+    return this.isPlatformAdmin(actor) ? {} : { merchantId: actor.id };
+  }
+
+  /**
+   * Loads a product and verifies the actor may manage it. Returns 404 (not 403)
+   * for foreign products so merchants cannot enumerate other merchants' catalog.
+   */
+  private async getManageableProductOrThrow(id: string, actor: ConsoleActor) {
+    const product = await this.prisma.product.findUnique({
+      where: { id },
+      select: { id: true, name: true, sku: true, categoryId: true, merchantId: true },
+    });
+    if (
+      !product ||
+      (!this.isPlatformAdmin(actor) && product.merchantId !== actor.id)
+    ) {
+      throw new NotFoundException(`Product with ID "${id}" not found`);
+    }
+    return product;
+  }
+
   async generateUniqueSlug(
     name: string,
     excludeProductId?: string,
@@ -267,12 +304,19 @@ export class ProductsService {
     }
   }
 
-  async findAllForAdmin(query: QueryAdminProductsDto) {
+  async findAllForAdmin(query: QueryAdminProductsDto, actor: ConsoleActor = PLATFORM_ACTOR) {
     const page = query.page && query.page > 0 ? query.page : 1;
     const limit = query.limit && query.limit > 0 ? query.limit : 20;
     const skip = (page - 1) * limit;
 
-    const where = this.buildAdminWhere(query);
+    const where: Prisma.ProductWhereInput = {
+      ...this.buildAdminWhere(query),
+      ...this.scopeWhere(actor),
+      // Only superadmins may filter by an arbitrary merchant id.
+      ...(this.isPlatformAdmin(actor) && query.merchantId
+        ? { merchantId: query.merchantId }
+        : {}),
+    };
 
     const [total, products] = await Promise.all([
       this.prisma.product.count({ where }),
@@ -302,7 +346,7 @@ export class ProductsService {
     };
   }
 
-  async findByIdForAdmin(id: string) {
+  async findByIdForAdmin(id: string, actor: ConsoleActor = PLATFORM_ACTOR) {
     const product = await this.prisma.product.findUnique({
       where: { id },
       include: {
@@ -316,7 +360,10 @@ export class ProductsService {
       },
     });
 
-    if (!product) {
+    if (
+      !product ||
+      (!this.isPlatformAdmin(actor) && product.merchantId !== actor.id)
+    ) {
       throw new NotFoundException(`Product with ID "${id}" not found`);
     }
 
@@ -330,7 +377,7 @@ export class ProductsService {
     };
   }
 
-  async create(dto: CreateProductDto) {
+  async create(dto: CreateProductDto, actor: ConsoleActor = PLATFORM_ACTOR) {
     // 1. Verify category exists
     const category = await this.prisma.category.findUnique({
       where: { id: dto.categoryId },
@@ -370,6 +417,10 @@ export class ProductsService {
           price: new Prisma.Decimal(dto.price),
           brand: dto.brand?.trim() ?? null,
           categoryId: dto.categoryId,
+          // Ownership always comes from the authenticated caller. A merchant
+          // can never assign a product to another merchant; only a superadmin
+          // may optionally set merchantId explicitly.
+          merchantId: this.isPlatformAdmin(actor) ? dto.merchantId ?? null : actor.id,
           isActive: dto.isActive ?? true,
         },
         include: productInclude,
@@ -401,13 +452,8 @@ export class ProductsService {
     }
   }
 
-  async update(id: string, dto: UpdateProductDto) {
-    const existing = await this.prisma.product.findUnique({
-      where: { id },
-    });
-    if (!existing) {
-      throw new NotFoundException(`Product with ID "${id}" not found`);
-    }
+  async update(id: string, dto: UpdateProductDto, actor: ConsoleActor = PLATFORM_ACTOR) {
+    const existing = await this.getManageableProductOrThrow(id, actor);
 
     if (dto.categoryId && dto.categoryId !== existing.categoryId) {
       const category = await this.prisma.category.findUnique({
@@ -500,14 +546,8 @@ export class ProductsService {
     }
   }
 
-  async setStatus(id: string, isActive: boolean) {
-    const existing = await this.prisma.product.findUnique({
-      where: { id },
-      select: { id: true },
-    });
-    if (!existing) {
-      throw new NotFoundException(`Product with ID "${id}" not found`);
-    }
+  async setStatus(id: string, isActive: boolean, actor: ConsoleActor = PLATFORM_ACTOR) {
+    await this.getManageableProductOrThrow(id, actor);
 
     const updated = await this.prisma.product.update({
       where: { id },
@@ -527,14 +567,8 @@ export class ProductsService {
     };
   }
 
-  async delete(id: string) {
-    const product = await this.prisma.product.findUnique({
-      where: { id },
-      select: { id: true, name: true },
-    });
-    if (!product) {
-      throw new NotFoundException(`Product with ID "${id}" not found`);
-    }
+  async delete(id: string, actor: ConsoleActor = PLATFORM_ACTOR) {
+    const product = await this.getManageableProductOrThrow(id, actor);
 
     // 1. Never delete products referenced by historical order records
     const orderItemsCount = await this.prisma.orderItem.count({
@@ -600,14 +634,9 @@ export class ProductsService {
       mimetype?: string;
       size?: number;
     }>,
+    actor: ConsoleActor = PLATFORM_ACTOR,
   ) {
-    const product = await this.prisma.product.findUnique({
-      where: { id: productId },
-      select: { id: true, name: true },
-    });
-    if (!product) {
-      throw new NotFoundException(`Product with ID "${productId}" not found`);
-    }
+    const product = await this.getManageableProductOrThrow(productId, actor);
 
     if (!files || files.length === 0) {
       throw new BadRequestException('At least one image file must be provided');
@@ -680,14 +709,8 @@ export class ProductsService {
     }
   }
 
-  async deleteImage(productId: string, imageId: string) {
-    const product = await this.prisma.product.findUnique({
-      where: { id: productId },
-      select: { id: true },
-    });
-    if (!product) {
-      throw new NotFoundException(`Product with ID "${productId}" not found`);
-    }
+  async deleteImage(productId: string, imageId: string, actor: ConsoleActor = PLATFORM_ACTOR) {
+    await this.getManageableProductOrThrow(productId, actor);
 
     const image = await this.prisma.productImage.findUnique({
       where: { id: imageId },
@@ -737,14 +760,8 @@ export class ProductsService {
     };
   }
 
-  async setPrimaryImage(productId: string, imageId: string) {
-    const product = await this.prisma.product.findUnique({
-      where: { id: productId },
-      select: { id: true },
-    });
-    if (!product) {
-      throw new NotFoundException(`Product with ID "${productId}" not found`);
-    }
+  async setPrimaryImage(productId: string, imageId: string, actor: ConsoleActor = PLATFORM_ACTOR) {
+    await this.getManageableProductOrThrow(productId, actor);
 
     const image = await this.prisma.productImage.findUnique({
       where: { id: imageId },

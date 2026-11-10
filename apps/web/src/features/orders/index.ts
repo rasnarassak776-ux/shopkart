@@ -5,6 +5,7 @@ export * from './order-states';
 export * from './components/order-status-badge';
 export * from './components/order-timeline';
 export * from './components/order-card';
+export * from './components/merchant-order-list';
 export * from './components/order-list';
 export * from './components/order-details';
 export * from './components/order-confirmation';

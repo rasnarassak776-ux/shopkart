@@ -1,10 +1,27 @@
+import { UserRole } from '@shopkart/common';
+
 /** Account destinations implemented by the authentication & user-management module. */
 export function getAccountLinks(role: string) {
-  const isAdmin = role === 'admin';
-  return [
-    { label: isAdmin ? 'Admin dashboard' : 'My dashboard', href: isAdmin ? '/admin/dashboard' : '/customer/dashboard' },
-    { label: isAdmin ? 'Manage orders' : 'My orders', href: isAdmin ? '/admin/orders' : '/customer/orders' },
-    { label: 'Profile & security', href: '/profile' },
-    ...(isAdmin ? [] : [{ label: 'Saved addresses', href: '/addresses' }]),
-  ];
+  switch (role) {
+    case UserRole.SUPERADMIN:
+      return [
+        { label: 'Superadmin dashboard', href: '/superadmin/dashboard' },
+        { label: 'Manage merchants', href: '/superadmin/merchants' },
+        { label: 'Merchant console', href: '/merchant/dashboard' },
+        { label: 'Profile & security', href: '/profile' },
+      ];
+    case UserRole.MERCHANT:
+      return [
+        { label: 'Merchant dashboard', href: '/merchant/dashboard' },
+        { label: 'Manage orders', href: '/merchant/orders' },
+        { label: 'Profile & security', href: '/profile' },
+      ];
+    default:
+      return [
+        { label: 'My dashboard', href: '/customer/dashboard' },
+        { label: 'My orders', href: '/customer/orders' },
+        { label: 'Profile & security', href: '/customer/profile' },
+        { label: 'Saved addresses', href: '/customer/addresses' },
+      ];
+  }
 }

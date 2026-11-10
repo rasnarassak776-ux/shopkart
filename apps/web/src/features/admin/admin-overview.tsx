@@ -31,8 +31,8 @@ interface ModuleStatus {
 }
 
 const modules: ModuleStatus[] = [
-  { name: 'Category management', description: 'Create, edit and publish catalog categories.', icon: TagIcon, status: 'live', href: '/admin/categories' },
-  { name: 'Product management', description: 'Product CRUD, pricing and images.', icon: ShoppingBagIcon, status: 'next-phase', href: '/admin/products' },
+  { name: 'Category management', description: 'Create, edit and publish catalog categories.', icon: TagIcon, status: 'live', href: '/merchant/categories' },
+  { name: 'Product management', description: 'Product CRUD, pricing and images.', icon: ShoppingBagIcon, status: 'next-phase', href: '/merchant/products' },
   { name: 'Orders', description: 'Order processing and fulfilment (order service).', icon: ClipboardIcon, status: 'coming-soon' },
   { name: 'Inventory', description: 'Stock levels and reservations (inventory service).', icon: PackageIcon, status: 'coming-soon' },
   { name: 'Customers', description: 'Customer accounts administration.', icon: UsersIcon, status: 'coming-soon' },
@@ -81,7 +81,7 @@ export function AdminOverview() {
               <ExternalLinkIcon className="h-4 w-4" />
               View storefront
             </Link>
-            <Link href="/admin/categories/new" className={buttonClasses({ size: 'sm', className: 'h-10' })}>
+            <Link href="/merchant/categories/new" className={buttonClasses({ size: 'sm', className: 'h-10' })}>
               <PlusIcon className="h-4 w-4" />
               New category
             </Link>
@@ -132,7 +132,7 @@ export function AdminOverview() {
       <div className="mt-6 grid gap-6 lg:mt-8 lg:grid-cols-5">
         <AdminPanel className="lg:col-span-3">
           <div className="border-b border-line px-5 py-4">
-            <h2 className="font-display text-base font-semibold text-ink">Admin modules</h2>
+            <h2 className="font-display text-base font-semibold text-ink">Merchant modules</h2>
             <p className="mt-0.5 text-sm text-ink-muted">Sections become available as each service is integrated.</p>
           </div>
           <ul className="divide-y divide-line">
@@ -169,8 +169,8 @@ export function AdminOverview() {
           <h2 className="font-display text-base font-semibold text-ink">Quick actions</h2>
           <ul className="mt-4 grid gap-2">
             {[
-              { label: 'Manage categories', href: '/admin/categories' },
-              { label: 'Add a new category', href: '/admin/categories/new' },
+              { label: 'Manage categories', href: '/merchant/categories' },
+              { label: 'Add a new category', href: '/merchant/categories/new' },
               { label: 'Browse the live catalog', href: '/products' },
               { label: 'Profile & security', href: '/profile' },
             ].map((action) => (

@@ -262,7 +262,7 @@ async function runFrontendIntegrationTests() {
     console.log(`Auth Service listening on port ${TEST_PORT}\n`);
 
     // Prepare seeded admin account
-    const dbAdminRole = await prisma.role.findUnique({ where: { name: 'admin' } });
+    const dbAdminRole = await prisma.role.findUnique({ where: { name: 'merchant' } });
     if (dbAdminRole) {
       const existingAdmin = await prisma.user.findUnique({ where: { email: testAdminEmail } });
       if (!existingAdmin) {
@@ -399,7 +399,7 @@ async function runFrontendIntegrationTests() {
     // ----------------------------------------------------
     console.log('Test 5: Customer dashboard redirection determination...');
     const customerDestination =
-      loginRes.user.role === 'admin' ? '/admin/dashboard' : '/customer/dashboard';
+      loginRes.user.role === 'merchant' ? '/merchant/dashboard' : '/customer/dashboard';
     const test5Pass = customerDestination === '/customer/dashboard';
 
     results.push({
@@ -433,7 +433,7 @@ async function runFrontendIntegrationTests() {
     let test7Pass = false;
     let test7Status = 0;
     try {
-      await apiClient('/api/v1/auth/admin-only');
+      await apiClient('/api/v1/auth/merchant-only');
     } catch (err: any) {
       test7Status = err.status;
       test7Pass = err instanceof ApiError && err.status === 403;
@@ -605,15 +605,15 @@ async function runFrontendIntegrationTests() {
     });
 
     const adminUserRole: string = adminLoginRes.user.role;
-    const adminTarget = adminUserRole === 'admin' ? '/admin/dashboard' : '/customer/dashboard';
+    const adminTarget = adminUserRole === 'merchant' ? '/merchant/dashboard' : '/customer/dashboard';
     const test13Pass =
       adminLoginRes.success === true &&
-      adminUserRole === 'admin' &&
-      adminTarget === '/admin/dashboard';
+      adminUserRole === 'merchant' &&
+      adminTarget === '/merchant/dashboard';
 
     results.push({
       testNumber: 13,
-      scenario: 'Admin login verifies admin role and routes to /admin/dashboard',
+      scenario: 'Admin login verifies admin role and routes to /merchant/dashboard',
       passed: test13Pass,
       details: `Role: ${adminUserRole}, Destination: "${adminTarget}"`,
     });

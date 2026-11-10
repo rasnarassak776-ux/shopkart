@@ -22,7 +22,7 @@ import { getAdminCategories, getAdminProduct } from './admin-catalog-api';
 import { ProductForm } from './product-form';
 import { ProductImageManager } from './product-image-manager';
 import type { AdminCategory, AdminProduct } from './types';
-import { useAdminToasts } from './use-admin-toasts';
+import { useAdminToasts } from './use-merchant-toasts';
 
 type LoadState =
   | { status: 'loading' }
@@ -131,7 +131,7 @@ export function ProductEditor({ productId }: ProductEditorProps) {
             title="Product Not Found"
             description="The product you are trying to edit does not exist or may have been deleted."
             action={
-              <Link href="/admin/products" className={buttonClasses({ size: 'sm' })}>
+              <Link href="/merchant/products" className={buttonClasses({ size: 'sm' })}>
                 Back to Products
               </Link>
             }

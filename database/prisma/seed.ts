@@ -17,11 +17,21 @@ async function main() {
     },
   });
 
-  const adminRole = await prisma.role.upsert({
-    where: { name: "admin" },
+  const merchantRole = await prisma.role.upsert({
+    where: { name: "merchant" },
     update: {},
     create: {
-      name: "admin",
+      name: "merchant",
+    },
+  });
+
+  // Superadmin role only. The superadmin *account* is provisioned separately via
+  // `npm run bootstrap:superadmin -w auth-service` (credentials from env vars).
+  const superadminRole = await prisma.role.upsert({
+    where: { name: "superadmin" },
+    update: {},
+    create: {
+      name: "superadmin",
     },
   });
 
@@ -283,7 +293,7 @@ async function main() {
 
   // Avoid unused-variable warnings if strict TypeScript is enabled.
   console.log(
-    `Created or verified roles: ${customerRole.name}, ${adminRole.name}`,
+    `Created or verified roles: ${customerRole.name}, ${merchantRole.name}, ${superadminRole.name}`,
   );
 }
 

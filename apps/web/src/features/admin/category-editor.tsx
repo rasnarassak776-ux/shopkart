@@ -68,7 +68,7 @@ export function CategoryEditor({ categoryId }: { categoryId?: string }) {
             title="Category not found"
             description="This category does not exist or may have been removed."
             action={
-              <Link href="/admin/categories" className={buttonClasses({ size: 'sm' })}>
+              <Link href="/merchant/categories" className={buttonClasses({ size: 'sm' })}>
                 Back to categories
               </Link>
             }

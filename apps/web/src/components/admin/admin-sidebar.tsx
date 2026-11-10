@@ -6,7 +6,9 @@ import { usePathname } from 'next/navigation';
 import { LogoMark } from '@/components/layout/logo';
 import { ChevronLeftIcon, ChevronRightIcon, CloseIcon, LogoutIcon } from '@/components/ui';
 import { cn } from '@/lib/cn';
-import { adminNavSections, isNavItemActive, type AdminNavItem } from './admin-nav';
+import { useAuth } from '@/hooks/use-auth';
+import { getRoleHomePath, getRoleLabel } from '@/lib/roles';
+import { getConsoleNavSections, isNavItemActive, type AdminNavItem } from './admin-nav';
 
 interface AdminSidebarProps {
   /** Desktop icon-rail mode. Ignored in the mobile/tablet drawer. */
@@ -72,19 +74,22 @@ function NavEntry({ item, collapsed, onNavigate }: { item: AdminNavItem; collaps
 }
 
 export function AdminSidebar({ collapsed = false, onToggleCollapsed, onClose, onLogout, isLoggingOut }: AdminSidebarProps) {
+  const { user } = useAuth();
+  const navSections = getConsoleNavSections(user?.role);
+  const consoleLabel = getRoleLabel(user?.role);
   const isDrawer = Boolean(onClose);
   const rail = collapsed && !isDrawer;
 
   return (
     <div className="flex h-full flex-col bg-surface">
       <div className={cn('flex h-16 shrink-0 items-center border-b border-line px-4', rail ? 'justify-center px-0' : 'justify-between')}>
-        <Link href="/admin" onClick={onClose} aria-label="Shopkart Admin overview" className="inline-flex items-center gap-2 rounded-lg">
+        <Link href={getRoleHomePath(user?.role)} onClick={onClose} aria-label={`Shopkart ${consoleLabel} overview`} className="inline-flex items-center gap-2 rounded-lg">
           <LogoMark />
           {!rail && (
             <span className="font-display text-lg font-extrabold leading-none tracking-tight text-ink">
               Shop<span className="text-accent-600">kart</span>
               <span className="ml-1.5 align-middle text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-muted">
-                Admin
+                {consoleLabel}
               </span>
             </span>
           )}
@@ -101,8 +106,8 @@ export function AdminSidebar({ collapsed = false, onToggleCollapsed, onClose, on
         )}
       </div>
 
-      <nav aria-label="Admin" className="flex-1 overflow-y-auto px-3 py-4">
-        {adminNavSections.map((section) => (
+      <nav aria-label="Merchant" className="flex-1 overflow-y-auto px-3 py-4">
+        {navSections.map((section) => (
           <div key={section.title} className="mb-5 last:mb-0">
             {rail ? (
               <div className="mx-auto mb-2 h-px w-6 bg-line" aria-hidden="true" />

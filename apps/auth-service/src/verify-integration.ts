@@ -36,7 +36,7 @@ async function verify() {
 
     // Task 5.2: Fetch seeded admin role
     const adminRole = await prisma.role.findUnique({
-      where: { name: 'admin' },
+      where: { name: 'merchant' },
     });
     console.log('✔ Seeded Admin Role found:', adminRole);
 

@@ -42,6 +42,11 @@ export class QueryAdminProductsDto {
   @IsOptional()
   categoryId?: string;
 
+  /** Superadmin-only filter: restrict the listing to one merchant's products. */
+  @IsUUID('4')
+  @IsOptional()
+  merchantId?: string;
+
   @Transform(({ value }) => {
     if (value === 'true' || value === true) return true;
     if (value === 'false' || value === false) return false;

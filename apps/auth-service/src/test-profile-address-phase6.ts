@@ -253,7 +253,7 @@ async function runPhase6Tests() {
         Authorization: `Bearer ${tokenA}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ role: 'admin' }),
+      body: JSON.stringify({ role: 'merchant' }),
     });
     const test7Pass = res7.status === 400;
 
