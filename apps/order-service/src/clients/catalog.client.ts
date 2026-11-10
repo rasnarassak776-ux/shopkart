@@ -6,6 +6,7 @@ export interface CatalogProduct {
   name: string;
   slug?: string;
   price: string | number;
+  merchantId?: string | null;
   isActive: boolean;
   images?: Array<{ imageUrl: string; isPrimary?: boolean; displayOrder?: number }>;
 }

@@ -12,6 +12,9 @@ describe('OrdersController', () => {
     createOrder: jest.fn(),
     getCustomerOrders: jest.fn(),
     getOrderById: jest.fn(),
+    getMerchantOrders: jest.fn(),
+    getMerchantOrderById: jest.fn(),
+    updateMerchantOrderStatus: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -111,6 +114,42 @@ describe('OrdersController', () => {
         'user-123',
         'order-123',
       );
+    });
+  });
+
+  describe('Merchant Endpoints', () => {
+    const mockUser = { id: 'merchant-123', role: 'merchant' };
+
+    it('getMerchantOrders should delegate to ordersService.getMerchantOrders', async () => {
+      const mockResult: any = { data: [], pagination: { total: 0 } };
+      mockOrdersService.getMerchantOrders.mockResolvedValue(mockResult);
+
+      const query: QueryOrdersDto = { page: 1, limit: 10, status: 'PENDING' as any };
+      const res = await controller.getMerchantOrders(mockUser, query);
+
+      expect(res).toBe(mockResult);
+      expect(mockOrdersService.getMerchantOrders).toHaveBeenCalledWith(mockUser, query);
+    });
+
+    it('getMerchantOrderById should delegate to ordersService.getMerchantOrderById', async () => {
+      const mockResult: any = { id: 'order-123' };
+      mockOrdersService.getMerchantOrderById.mockResolvedValue(mockResult);
+
+      const res = await controller.getMerchantOrderById(mockUser, 'order-123');
+
+      expect(res).toBe(mockResult);
+      expect(mockOrdersService.getMerchantOrderById).toHaveBeenCalledWith(mockUser, 'order-123');
+    });
+
+    it('updateMerchantOrderStatus should delegate to ordersService.updateMerchantOrderStatus', async () => {
+      const mockResult: any = { id: 'order-123', status: 'CONFIRMED' };
+      mockOrdersService.updateMerchantOrderStatus.mockResolvedValue(mockResult);
+
+      const body = { status: 'CONFIRMED' as any, notes: 'Order approved' };
+      const res = await controller.updateMerchantOrderStatus(mockUser, 'order-123', body);
+
+      expect(res).toBe(mockResult);
+      expect(mockOrdersService.updateMerchantOrderStatus).toHaveBeenCalledWith(mockUser, 'order-123', body);
     });
   });
 });

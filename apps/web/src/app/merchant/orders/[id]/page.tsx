@@ -3,7 +3,7 @@
 import React from 'react';
 import { ProtectedRoute } from '@/components/protected-route';
 import { Container } from '@/components/ui';
-import { OrderDetails, getAdminOrderById } from '@/features/orders';
+import { OrderDetails, getMerchantOrderById } from '@/features/orders';
 import { MERCHANT_ROLES } from '@/lib/roles';
 
 export default function MerchantOrderDetailsPage({ params }: { params: { id: string } }) {
@@ -13,9 +13,10 @@ export default function MerchantOrderDetailsPage({ params }: { params: { id: str
         <Container>
           <OrderDetails
             orderId={params.id}
-            fetchOrder={getAdminOrderById}
+            fetchOrder={getMerchantOrderById}
             backHref="/merchant/orders"
             backLabel="Back to Orders"
+            isMerchantView={true}
           />
         </Container>
       </main>

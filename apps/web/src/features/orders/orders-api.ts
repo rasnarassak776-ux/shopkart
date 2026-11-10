@@ -15,6 +15,8 @@ function buildQuery(query: QueryOrdersDto): string {
   if (query.status) params.set('status', query.status);
   if (query.page) params.set('page', String(query.page));
   if (query.limit) params.set('limit', String(query.limit));
+  if (query.search) params.set('search', query.search);
+  if (query.merchantId) params.set('merchantId', query.merchantId);
   const qs = params.toString();
   return qs ? `?${qs}` : '';
 }
@@ -46,46 +48,91 @@ export async function getOrderById(
 }
 
 /**
- * Merchant: list all orders across users.
+ * Merchant: list merchant-scoped orders containing the merchant's products.
+ */
+export async function getMerchantOrders(
+  query: QueryOrdersDto = {},
+  init?: RequestInit,
+): Promise<PaginatedOrdersResponse> {
+  return apiClient<PaginatedOrdersResponse>(
+    `${ORDER_API_URL}/api/v1/orders/merchant${buildQuery(query)}`,
+    init,
+  );
+}
+
+/**
+ * Merchant: fetch merchant-scoped order details by ID.
+ */
+export async function getMerchantOrderById(
+  id: string,
+  init?: RequestInit,
+): Promise<Order> {
+  return apiClient<Order>(
+    `${ORDER_API_URL}/api/v1/orders/merchant/${encodeURIComponent(id)}`,
+    init,
+  );
+}
+
+/**
+ * Merchant: update fulfillment status for merchant's own items.
+ */
+export async function updateMerchantOrderStatus(
+  orderId: string,
+  status: OrderStatus,
+  notes?: string,
+  init?: RequestInit,
+): Promise<Order> {
+  return apiClient<Order>(
+    `${ORDER_API_URL}/api/v1/orders/merchant/${encodeURIComponent(orderId)}/status`,
+    {
+      ...init,
+      method: 'PATCH',
+      body: JSON.stringify({ status, notes }),
+    },
+  );
+}
+
+/**
+ * Console/Admin alias: list all orders across users.
  */
 export async function getAdminOrders(
   query: QueryOrdersDto = {},
   init?: RequestInit,
 ): Promise<PaginatedOrdersResponse> {
   return apiClient<PaginatedOrdersResponse>(
-    `${ORDER_API_URL}/api/v1/orders/admin${buildQuery(query)}`,
+    `${ORDER_API_URL}/api/v1/orders/merchant${buildQuery(query)}`,
     init,
   );
 }
 
 /**
- * Merchant/superadmin: fetch a single order. Merchants only receive the items
- * that belong to them; the backend enforces this.
+ * Console/Admin alias: fetch a single order snapshot.
  */
 export async function getAdminOrderById(
   id: string,
   init?: RequestInit,
 ): Promise<Order> {
   return apiClient<Order>(
-    `${ORDER_API_URL}/api/v1/orders/admin/${encodeURIComponent(id)}`,
+    `${ORDER_API_URL}/api/v1/orders/merchant/${encodeURIComponent(id)}`,
     init,
   );
 }
 
 /**
- * Merchant: update order status.
+ * Console/Admin alias: update order status.
  */
 export async function updateOrderStatus(
   orderId: string,
   status: OrderStatus,
+  notes?: string,
   init?: RequestInit,
 ): Promise<Order> {
   return apiClient<Order>(
-    `${ORDER_API_URL}/api/v1/orders/admin/${encodeURIComponent(orderId)}/status`,
+    `${ORDER_API_URL}/api/v1/orders/merchant/${encodeURIComponent(orderId)}/status`,
     {
       ...init,
       method: 'PATCH',
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({ status, notes }),
     },
   );
 }

@@ -19,6 +19,7 @@ import { CatalogClient } from '../clients/catalog.client';
 import { InventoryService } from '../inventory/inventory.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { QueryOrdersDto } from './dto/query-orders.dto';
+import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import {
   OrderItemResponse,
   OrderResponse,
@@ -92,6 +93,7 @@ export class OrdersService {
     // 4. Validate all cart items with authoritative Catalog Service prices and status
     const verifiedItems: Array<{
       productId: string;
+      merchantId: string | null;
       name: string;
       quantity: number;
       unitPrice: Prisma.Decimal;
@@ -108,11 +110,21 @@ export class OrdersService {
         );
       }
 
+      let merchantId = product.merchantId ?? null;
+      if (!merchantId && this.prisma.product) {
+        const localProd = await this.prisma.product.findUnique({
+          where: { id: product.id },
+          select: { merchantId: true },
+        });
+        merchantId = localProd?.merchantId ?? null;
+      }
+
       const unitPrice = new Prisma.Decimal(product.price);
       const lineTotal = unitPrice.mul(new Prisma.Decimal(item.quantity));
 
       verifiedItems.push({
         productId: product.id,
+        merchantId,
         name: product.name,
         quantity: item.quantity,
         unitPrice,
@@ -139,15 +151,17 @@ export class OrdersService {
           },
         });
 
-        // Create Order Items
+        // Create Order Items with immutable merchantId snapshot
         for (const item of verifiedItems) {
           await tx.orderItem.create({
             data: {
               orderId: order.id,
               productId: item.productId,
+              merchantId: item.merchantId,
               productNameSnapshot: item.name.substring(0, 180),
               quantity: item.quantity,
               unitPriceSnapshot: item.unitPrice,
+              status: OrderStatus.PENDING,
             },
           });
         }
@@ -287,6 +301,15 @@ export class OrdersService {
 
   // ---------------- Merchant / Superadmin Order Management ----------------
 
+  private static readonly ALLOWED_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
+    [OrderStatus.PENDING]: [OrderStatus.CONFIRMED, OrderStatus.CANCELLED],
+    [OrderStatus.CONFIRMED]: [OrderStatus.PROCESSING, OrderStatus.CANCELLED],
+    [OrderStatus.PROCESSING]: [OrderStatus.SHIPPED, OrderStatus.CANCELLED],
+    [OrderStatus.SHIPPED]: [OrderStatus.DELIVERED],
+    [OrderStatus.DELIVERED]: [],
+    [OrderStatus.CANCELLED]: [],
+  };
+
   /**
    * Console callers: merchants see only orders containing their own products
    * (items filtered to theirs at the order-item level); superadmins see all.
@@ -305,16 +328,48 @@ export class OrdersService {
     return rows.map((r) => r.id);
   }
 
-  private filterItemsForMerchant(order: any, merchantProductIds: string[] | null) {
-    if (!merchantProductIds) return order;
-    const owned = new Set(merchantProductIds);
+  /**
+   * Filter and recalculate order for a specific merchant so no private items,
+   * totals, or foreign product details are ever leaked.
+   */
+  private filterOrderForMerchant(order: any, merchantId: string, merchantProductIds: string[]): any {
+    const ownedProductSet = new Set(merchantProductIds);
+    const merchantItems = (order.items || []).filter(
+      (item: any) => item.merchantId === merchantId || ownedProductSet.has(item.productId),
+    );
+
+    if (merchantItems.length === 0) {
+      return null;
+    }
+
+    // Recalculate merchant subtotal from their own items only
+    const merchantSubtotal = merchantItems.reduce(
+      (acc: Prisma.Decimal, it: any) =>
+        acc.add(new Prisma.Decimal(it.unitPriceSnapshot).mul(new Prisma.Decimal(it.quantity))),
+      new Prisma.Decimal(0),
+    );
+
+    // Filter status history to order-level or this merchant's updates
+    const filteredHistory = (order.statusHistory || []).filter(
+      (h: any) => !h.merchantId || h.merchantId === merchantId,
+    );
+
+    // Compute merchant's specific item fulfillment status
+    const merchantItemStatuses = merchantItems.map((i: any) => i.status || order.status);
+    const allSameStatus = merchantItemStatuses.every((s: any) => s === merchantItemStatuses[0]);
+    const merchantStatus = allSameStatus ? merchantItemStatuses[0] : order.status;
+
     return {
       ...order,
-      items: (order.items || []).filter((item: any) => owned.has(item.productId)),
+      status: merchantStatus,
+      totalAmount: merchantSubtotal,
+      itemCount: merchantItems.reduce((acc: number, it: any) => acc + (it.quantity || 0), 0),
+      items: merchantItems,
+      statusHistory: filteredHistory,
     };
   }
 
-  async getConsoleOrders(
+  async getMerchantOrders(
     actor: { id: string; role: string },
     query: QueryOrdersDto,
   ): Promise<PaginatedOrdersResponse> {
@@ -324,14 +379,37 @@ export class OrdersService {
     const limit = Math.min(50, Math.max(1, Number(query.limit) || 10));
     const skip = (page - 1) * limit;
 
-    const merchantProductIds =
-      actor.role === UserRole.MERCHANT ? await this.getMerchantProductIds(actor.id) : null;
+    const isSuperadmin = actor.role === UserRole.SUPERADMIN;
+    const targetMerchantId = isSuperadmin ? query.merchantId : actor.id;
+
+    let merchantProductIds: string[] = [];
+    if (targetMerchantId) {
+      merchantProductIds = await this.getMerchantProductIds(targetMerchantId);
+    }
+
+    const searchTrimmed = query.search?.trim();
+    const isSearchUuid = Boolean(
+      searchTrimmed &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(searchTrimmed),
+    );
 
     const where: Prisma.OrderWhereInput = {
-      ...(query.status ? { status: query.status } : {}),
-      ...(merchantProductIds
-        ? { items: { some: { productId: { in: merchantProductIds } } } }
-        : {}),
+      ...(isSearchUuid ? { id: searchTrimmed } : {}),
+      ...(targetMerchantId
+        ? {
+            items: {
+              some: {
+                OR: [
+                  { merchantId: targetMerchantId },
+                  ...(merchantProductIds.length > 0 ? [{ productId: { in: merchantProductIds } }] : []),
+                ],
+                ...(query.status ? { status: query.status } : {}),
+              },
+            },
+          }
+        : query.status
+          ? { status: query.status }
+          : {}),
     };
 
     const [orders, total] = await Promise.all([
@@ -351,10 +429,16 @@ export class OrdersService {
 
     const totalPages = Math.ceil(total / limit) || 1;
 
+    const formattedData = orders.map((order) => {
+      if (!isSuperadmin) {
+        const filtered = this.filterOrderForMerchant(order, actor.id, merchantProductIds);
+        return this.formatOrderResponse(filtered || order, true);
+      }
+      return this.formatOrderResponse(order);
+    });
+
     return {
-      data: orders.map((order) =>
-        this.formatOrderResponse(this.filterItemsForMerchant(order, merchantProductIds)),
-      ),
+      data: formattedData,
       pagination: {
         page,
         limit,
@@ -370,7 +454,7 @@ export class OrdersService {
     };
   }
 
-  async getConsoleOrderById(
+  async getMerchantOrderById(
     actor: { id: string; role: string },
     orderId: string,
   ): Promise<OrderResponse> {
@@ -389,72 +473,178 @@ export class OrdersService {
       throw new NotFoundException('Order not found');
     }
 
-    const merchantProductIds =
-      actor.role === UserRole.MERCHANT ? await this.getMerchantProductIds(actor.id) : null;
-
-    if (merchantProductIds) {
-      const owned = new Set(merchantProductIds);
-      const visibleItems = (order.items || []).filter((item: any) => owned.has(item.productId));
-      if (visibleItems.length === 0) {
+    if (actor.role === UserRole.MERCHANT) {
+      const merchantProductIds = await this.getMerchantProductIds(actor.id);
+      const filtered = this.filterOrderForMerchant(order, actor.id, merchantProductIds);
+      if (!filtered) {
         throw new NotFoundException('Order not found');
       }
-      return this.formatOrderResponse({ ...order, items: visibleItems });
+      return this.formatOrderResponse(filtered, true);
     }
 
     return this.formatOrderResponse(order);
   }
 
-  async updateConsoleOrderStatus(
+  async updateMerchantOrderStatus(
     actor: { id: string; role: string },
     orderId: string,
-    status: OrderStatus,
+    dto: UpdateOrderStatusDto,
   ): Promise<OrderResponse> {
     this.assertConsoleRole(actor.role);
+    const targetStatus = dto.status;
 
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
-      include: { items: true },
+      include: { items: true, payments: true },
     });
 
     if (!order) {
       throw new NotFoundException('Order not found');
     }
 
-    if (actor.role === UserRole.MERCHANT) {
-      // Order status is order-level: a merchant may only advance an order when
-      // every item belongs to them, so they can never affect another
-      // merchant's fulfillment.
-      const productIds = (order.items || []).map((item: any) => item.productId);
-      const products = await this.prisma.product.findMany({
-        where: { id: { in: productIds } },
-        select: { id: true, merchantId: true },
-      });
-      const owned = new Set(products.filter((p) => p.merchantId === actor.id).map((p) => p.id));
-      const allOwned = productIds.length > 0 && productIds.every((pid: string) => owned.has(pid));
-      if (!allOwned) {
-        throw new ForbiddenException(
-          'This order contains products from other merchants and cannot be managed here.',
+    const isSuperadmin = actor.role === UserRole.SUPERADMIN;
+    let targetItems: any[] = [];
+    let merchantProductIds: string[] = [];
+
+    if (!isSuperadmin) {
+      merchantProductIds = await this.getMerchantProductIds(actor.id);
+      const ownedProductSet = new Set(merchantProductIds);
+      targetItems = (order.items || []).filter(
+        (i: any) => i.merchantId === actor.id || ownedProductSet.has(i.productId),
+      );
+
+      if (targetItems.length === 0) {
+        throw new NotFoundException('Order not found');
+      }
+    } else {
+      targetItems = order.items || [];
+    }
+
+    // Check if target items are already at requested status (idempotent request)
+    const allAlreadyTarget = targetItems.every((i: any) => (i.status || order.status) === targetStatus);
+    if (allAlreadyTarget) {
+      return this.getMerchantOrderById(actor, orderId);
+    }
+
+    // Validate lifecycle transitions for target items
+    for (const item of targetItems) {
+      const currentItemStatus = (item.status || order.status) as OrderStatus;
+      const validNext = OrdersService.ALLOWED_TRANSITIONS[currentItemStatus] || [];
+      if (currentItemStatus !== targetStatus && !validNext.includes(targetStatus)) {
+        throw new BadRequestException(
+          `Cannot transition item "${item.productNameSnapshot}" from ${currentItemStatus} to ${targetStatus}. Allowed next: ${validNext.length > 0 ? validNext.join(', ') : 'None (Terminal state)'}`,
         );
       }
     }
 
-    const updated = await this.prisma.$transaction(async (tx) => {
-      const result = await tx.order.update({
-        where: { id: orderId },
-        data: { status },
-        include: {
-          items: true,
-          payments: true,
-          statusHistory: { orderBy: { changedAt: 'asc' } },
-        },
-      });
-      await tx.orderStatusHistory.create({
-        data: { orderId, status },
-      });
-      return result;
-    });
+    const targetItemIds = targetItems.map((i: any) => i.id);
+    const targetProductIds = targetItems.map((i: any) => i.productId);
 
-    return this.formatOrderResponse(updated);
+    // Execute atomic update in transaction
+    const updatedOrder = await this.prisma.$transaction(
+      async (tx) => {
+        // 1. Update target items' fulfillment status
+        await tx.orderItem.updateMany({
+          where: { id: { in: targetItemIds } },
+          data: { status: targetStatus },
+        });
+
+        // 2. Audit history entry
+        await tx.orderStatusHistory.create({
+          data: {
+            orderId,
+            merchantId: !isSuperadmin ? actor.id : null,
+            status: targetStatus,
+            notes: dto.notes || (!isSuperadmin ? `Updated by merchant ${actor.id}` : 'Updated by superadmin'),
+          },
+        });
+
+        // 3. Release inventory stock if transitioning to CANCELLED
+        if (targetStatus === OrderStatus.CANCELLED) {
+          await this.inventoryService.releaseStockForItemsInTx(tx, orderId, targetProductIds);
+        }
+
+        // 4. Determine aggregate customer order status across ALL items in this order
+        const allOrderItems = await tx.orderItem.findMany({
+          where: { orderId },
+        });
+
+        const allStatuses = allOrderItems.map((i) => i.status);
+        let newAggregateStatus: OrderStatus;
+
+        if (allStatuses.length > 0 && allStatuses.every((s) => s === OrderStatus.DELIVERED)) {
+          newAggregateStatus = OrderStatus.DELIVERED;
+          await tx.payment.updateMany({
+            where: {
+              orderId,
+              paymentMethod: PaymentMethod.COD,
+              paymentStatus: PaymentStatus.COD_PENDING,
+            },
+            data: {
+              paymentStatus: PaymentStatus.COD_COLLECTED,
+            },
+          });
+        } else if (allStatuses.length > 0 && allStatuses.every((s) => s === OrderStatus.CANCELLED)) {
+          newAggregateStatus = OrderStatus.CANCELLED;
+        } else if (allStatuses.some((s) => s === OrderStatus.SHIPPED)) {
+          newAggregateStatus = OrderStatus.SHIPPED;
+        } else if (allStatuses.some((s) => s === OrderStatus.PROCESSING)) {
+          newAggregateStatus = OrderStatus.PROCESSING;
+        } else if (allStatuses.some((s) => s === OrderStatus.CONFIRMED)) {
+          newAggregateStatus = OrderStatus.CONFIRMED;
+        } else {
+          newAggregateStatus = OrderStatus.PENDING;
+        }
+
+        if (order.status !== newAggregateStatus) {
+          await tx.order.update({
+            where: { id: orderId },
+            data: { status: newAggregateStatus, updatedAt: new Date() },
+          });
+
+          await tx.orderStatusHistory.create({
+            data: {
+              orderId,
+              status: newAggregateStatus,
+              notes: 'Aggregate order status updated',
+            },
+          });
+        }
+
+        return tx.order.findUnique({
+          where: { id: orderId },
+          include: {
+            items: true,
+            payments: true,
+            statusHistory: { orderBy: { changedAt: 'asc' } },
+          },
+        });
+      },
+      {
+        isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
+        timeout: 10000,
+      },
+    );
+
+    if (!isSuperadmin) {
+      const filtered = this.filterOrderForMerchant(updatedOrder, actor.id, merchantProductIds);
+      return this.formatOrderResponse(filtered || updatedOrder, true);
+    }
+
+    return this.formatOrderResponse(updatedOrder);
+  }
+
+  // Backwards compatible aliases for existing console callers
+  async getConsoleOrders(actor: { id: string; role: string }, query: QueryOrdersDto) {
+    return this.getMerchantOrders(actor, query);
+  }
+
+  async getConsoleOrderById(actor: { id: string; role: string }, orderId: string) {
+    return this.getMerchantOrderById(actor, orderId);
+  }
+
+  async updateConsoleOrderStatus(actor: { id: string; role: string }, orderId: string, status: OrderStatus, notes?: string) {
+    return this.updateMerchantOrderStatus(actor, orderId, { status, notes });
   }
 
   private async getLocalActiveCart(userId: string) {
@@ -487,19 +677,23 @@ export class OrdersService {
     });
   }
 
-  private formatOrderResponse(order: any): OrderResponse {
+  private formatOrderResponse(order: any, merchantView = false): OrderResponse {
     const payment = order.payments && order.payments.length > 0 ? order.payments[0] : null;
 
     const items: OrderItemResponse[] = (order.items || []).map((item: any) => {
-      const unitPrice = new Prisma.Decimal(item.unitPriceSnapshot);
-      const lineTotal = unitPrice.mul(new Prisma.Decimal(item.quantity));
+      const unitPrice = new Prisma.Decimal(item.unitPriceSnapshot || item.unitPrice || 0);
+      const lineTotal = unitPrice.mul(new Prisma.Decimal(item.quantity || 1));
       return {
         id: item.id,
         productId: item.productId,
-        name: item.productNameSnapshot,
+        merchantId: item.merchantId,
+        name: item.productNameSnapshot || item.name || '',
+        productNameSnapshot: item.productNameSnapshot || item.name || '',
         quantity: item.quantity,
         unitPrice: unitPrice.toFixed(2),
+        unitPriceSnapshot: unitPrice.toFixed(2),
         totalPrice: lineTotal.toFixed(2),
+        status: item.status || order.status,
       };
     });
 
@@ -512,7 +706,7 @@ export class OrdersService {
       id: order.id,
       userId: order.userId,
       status: order.status,
-      totalAmount: new Prisma.Decimal(order.totalAmount).toFixed(2),
+      totalAmount: new Prisma.Decimal(order.totalAmount || 0).toFixed(2),
       currency: 'INR',
       itemCount: totalItemCount,
       addressSnapshot: order.addressSnapshot,
@@ -521,11 +715,16 @@ export class OrdersService {
         ? {
             paymentMethod: payment.paymentMethod,
             paymentStatus: payment.paymentStatus,
-            amount: new Prisma.Decimal(payment.amount).toFixed(2),
+            amount: merchantView
+              ? new Prisma.Decimal(order.totalAmount || 0).toFixed(2)
+              : new Prisma.Decimal(payment.amount || 0).toFixed(2),
             idempotencyKey: payment.idempotencyKey,
           }
         : undefined,
       statusHistory: (order.statusHistory || []).map((h: any) => ({
+        id: h.id,
+        merchantId: h.merchantId,
+        notes: h.notes,
         status: h.status,
         changedAt: h.changedAt ? new Date(h.changedAt).toISOString() : new Date().toISOString(),
       })),
