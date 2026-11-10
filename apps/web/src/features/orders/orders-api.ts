@@ -33,7 +33,7 @@ export async function getCustomerOrders(
 }
 
 /**
- * Fetch a specific order by ID (customer or admin).
+ * Fetch a specific order by ID (customer or merchant).
  */
 export async function getOrderById(
   id: string,
@@ -46,7 +46,7 @@ export async function getOrderById(
 }
 
 /**
- * Admin: list all orders across users.
+ * Merchant: list all orders across users.
  */
 export async function getAdminOrders(
   query: QueryOrdersDto = {},
@@ -59,7 +59,21 @@ export async function getAdminOrders(
 }
 
 /**
- * Admin: update order status.
+ * Merchant/superadmin: fetch a single order. Merchants only receive the items
+ * that belong to them; the backend enforces this.
+ */
+export async function getAdminOrderById(
+  id: string,
+  init?: RequestInit,
+): Promise<Order> {
+  return apiClient<Order>(
+    `${ORDER_API_URL}/api/v1/orders/admin/${encodeURIComponent(id)}`,
+    init,
+  );
+}
+
+/**
+ * Merchant: update order status.
  */
 export async function updateOrderStatus(
   orderId: string,

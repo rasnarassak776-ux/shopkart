@@ -6,9 +6,9 @@ import { AdminErrorState, AdminPageHeader, AdminPanel, AdminStatCard, type Admin
 import { ArrowRightIcon, buttonClasses, CheckIcon, ClipboardIcon, PlusIcon, ShieldIcon, Skeleton, UsersIcon } from '@/components/ui';
 import { useAuth } from '@/hooks/use-auth';
 import { ApiError } from '@/lib/api-client';
-import { getAdminAccounts, getRecentAuditLogs } from './superadmin-api';
-import { describeAuditLog } from './admin-account-utils';
-import type { AdminAccountsResponse, AuditLogEntry } from './types';
+import { getMerchantAccounts, getRecentAuditLogs } from './superadmin-api';
+import { describeAuditLog } from './merchant-account-utils';
+import type { MerchantAccountsResponse, AuditLogEntry } from './types';
 
 const dateTimeFormat = new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
 
@@ -17,7 +17,7 @@ const errorMessage = (err: unknown, fallback: string) =>
 
 export function SuperadminOverview() {
   const { user } = useAuth();
-  const [summary, setSummary] = useState<AdminAccountsResponse['summary'] | null>(null);
+  const [summary, setSummary] = useState<MerchantAccountsResponse['summary'] | null>(null);
   const [logs, setLogs] = useState<AuditLogEntry[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +26,7 @@ export function SuperadminOverview() {
     setLoading(true);
     setError(null);
     try {
-      const [accounts, recent] = await Promise.all([getAdminAccounts({ limit: 1 }), getRecentAuditLogs(8)]);
+      const [accounts, recent] = await Promise.all([getMerchantAccounts({ limit: 1 }), getRecentAuditLogs(8)]);
       setSummary(accounts.summary);
       setLogs(recent);
     } catch (err) {
@@ -49,9 +49,9 @@ export function SuperadminOverview() {
         title="Platform overview"
         description={`Welcome back${firstName ? `, ${firstName}` : ''}. Manage administrator access and review privileged activity.`}
         actions={
-          <Link href="/superadmin/admins/create" className={buttonClasses({ variant: 'accent', size: 'md' })}>
+          <Link href="/superadmin/merchants/create" className={buttonClasses({ variant: 'accent', size: 'md' })}>
             <PlusIcon className="h-4 w-4" />
-            Create admin
+            Create merchant
           </Link>
         }
       />
@@ -59,9 +59,9 @@ export function SuperadminOverview() {
       {error && <AdminErrorState message={error} onRetry={load} />}
 
       <div className="mt-6 grid gap-4 sm:grid-cols-3">
-        <AdminStatCard label="Admin accounts" value={summary?.total} status={status} icon={UsersIcon} />
-        <AdminStatCard label="Active admins" value={summary?.active} status={status} icon={CheckIcon} tone="success" />
-        <AdminStatCard label="Deactivated admins" value={summary?.inactive} status={status} icon={ShieldIcon} tone="neutral" />
+        <AdminStatCard label="Merchant accounts" value={summary?.total} status={status} icon={UsersIcon} />
+        <AdminStatCard label="Active merchants" value={summary?.active} status={status} icon={CheckIcon} tone="success" />
+        <AdminStatCard label="Deactivated merchants" value={summary?.inactive} status={status} icon={ShieldIcon} tone="neutral" />
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
@@ -104,9 +104,9 @@ export function SuperadminOverview() {
           <h2 className="font-display text-base font-semibold text-ink">Quick actions</h2>
           <ul className="mt-3 space-y-1 text-sm">
             {[
-              { href: '/superadmin/admins', label: 'Manage admin accounts' },
-              { href: '/superadmin/admins/create', label: 'Create a new admin' },
-              { href: '/admin', label: 'Open store admin console' },
+              { href: '/superadmin/merchants', label: 'Manage merchant accounts' },
+              { href: '/superadmin/merchants/create', label: 'Create a new merchant' },
+              { href: '/merchant', label: 'Open store merchant console' },
               { href: '/superadmin/settings', label: 'Platform settings' },
             ].map((link) => (
               <li key={link.href}>

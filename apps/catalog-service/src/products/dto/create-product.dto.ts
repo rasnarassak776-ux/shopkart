@@ -53,6 +53,15 @@ export class CreateProductDto {
   @IsNotEmpty({ message: 'categoryId is required' })
   categoryId!: string;
 
+  /**
+   * Owning merchant for the product. Honoured only for superadmin callers;
+   * merchants always own the products they create and this field is ignored
+   * for them.
+   */
+  @IsOptional()
+  @IsUUID('4', { message: 'merchantId must be a valid UUID' })
+  merchantId?: string;
+
   @Transform(trimToNull)
   @ValidateIf(isPresent)
   @IsString()

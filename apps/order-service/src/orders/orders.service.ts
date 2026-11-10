@@ -11,6 +11,7 @@ import {
   PaymentStatus,
   Prisma,
 } from '@prisma/client';
+import { UserRole } from '@shopkart/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthClient, AddressSnapshot } from '../clients/auth.client';
 import { CartClient } from '../clients/cart.client';
@@ -282,6 +283,178 @@ export class OrdersService {
     }
 
     return this.formatOrderResponse(order);
+  }
+
+  // ---------------- Merchant / Superadmin Order Management ----------------
+
+  /**
+   * Console callers: merchants see only orders containing their own products
+   * (items filtered to theirs at the order-item level); superadmins see all.
+   */
+  private assertConsoleRole(role: string) {
+    if (role !== UserRole.MERCHANT && role !== UserRole.SUPERADMIN) {
+      throw new ForbiddenException('You do not have permission to perform this action.');
+    }
+  }
+
+  private async getMerchantProductIds(merchantId: string): Promise<string[]> {
+    const rows = await this.prisma.product.findMany({
+      where: { merchantId },
+      select: { id: true },
+    });
+    return rows.map((r) => r.id);
+  }
+
+  private filterItemsForMerchant(order: any, merchantProductIds: string[] | null) {
+    if (!merchantProductIds) return order;
+    const owned = new Set(merchantProductIds);
+    return {
+      ...order,
+      items: (order.items || []).filter((item: any) => owned.has(item.productId)),
+    };
+  }
+
+  async getConsoleOrders(
+    actor: { id: string; role: string },
+    query: QueryOrdersDto,
+  ): Promise<PaginatedOrdersResponse> {
+    this.assertConsoleRole(actor.role);
+
+    const page = Math.max(1, Number(query.page) || 1);
+    const limit = Math.min(50, Math.max(1, Number(query.limit) || 10));
+    const skip = (page - 1) * limit;
+
+    const merchantProductIds =
+      actor.role === UserRole.MERCHANT ? await this.getMerchantProductIds(actor.id) : null;
+
+    const where: Prisma.OrderWhereInput = {
+      ...(query.status ? { status: query.status } : {}),
+      ...(merchantProductIds
+        ? { items: { some: { productId: { in: merchantProductIds } } } }
+        : {}),
+    };
+
+    const [orders, total] = await Promise.all([
+      this.prisma.order.findMany({
+        where,
+        include: {
+          items: true,
+          payments: true,
+          statusHistory: { orderBy: { changedAt: 'asc' } },
+        },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        skip,
+        take: limit,
+      }),
+      this.prisma.order.count({ where }),
+    ]);
+
+    const totalPages = Math.ceil(total / limit) || 1;
+
+    return {
+      data: orders.map((order) =>
+        this.formatOrderResponse(this.filterItemsForMerchant(order, merchantProductIds)),
+      ),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1,
+      },
+      total,
+      page,
+      limit,
+      totalPages,
+    };
+  }
+
+  async getConsoleOrderById(
+    actor: { id: string; role: string },
+    orderId: string,
+  ): Promise<OrderResponse> {
+    this.assertConsoleRole(actor.role);
+
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        items: true,
+        payments: true,
+        statusHistory: { orderBy: { changedAt: 'asc' } },
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    const merchantProductIds =
+      actor.role === UserRole.MERCHANT ? await this.getMerchantProductIds(actor.id) : null;
+
+    if (merchantProductIds) {
+      const owned = new Set(merchantProductIds);
+      const visibleItems = (order.items || []).filter((item: any) => owned.has(item.productId));
+      if (visibleItems.length === 0) {
+        throw new NotFoundException('Order not found');
+      }
+      return this.formatOrderResponse({ ...order, items: visibleItems });
+    }
+
+    return this.formatOrderResponse(order);
+  }
+
+  async updateConsoleOrderStatus(
+    actor: { id: string; role: string },
+    orderId: string,
+    status: OrderStatus,
+  ): Promise<OrderResponse> {
+    this.assertConsoleRole(actor.role);
+
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: { items: true },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    if (actor.role === UserRole.MERCHANT) {
+      // Order status is order-level: a merchant may only advance an order when
+      // every item belongs to them, so they can never affect another
+      // merchant's fulfillment.
+      const productIds = (order.items || []).map((item: any) => item.productId);
+      const products = await this.prisma.product.findMany({
+        where: { id: { in: productIds } },
+        select: { id: true, merchantId: true },
+      });
+      const owned = new Set(products.filter((p) => p.merchantId === actor.id).map((p) => p.id));
+      const allOwned = productIds.length > 0 && productIds.every((pid: string) => owned.has(pid));
+      if (!allOwned) {
+        throw new ForbiddenException(
+          'This order contains products from other merchants and cannot be managed here.',
+        );
+      }
+    }
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const result = await tx.order.update({
+        where: { id: orderId },
+        data: { status },
+        include: {
+          items: true,
+          payments: true,
+          statusHistory: { orderBy: { changedAt: 'asc' } },
+        },
+      });
+      await tx.orderStatusHistory.create({
+        data: { orderId, status },
+      });
+      return result;
+    });
+
+    return this.formatOrderResponse(updated);
   }
 
   private async getLocalActiveCart(userId: string) {

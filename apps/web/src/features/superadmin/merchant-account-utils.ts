@@ -1,11 +1,11 @@
 import type { AuditLogEntry } from './types';
 
 /** Mirrors the auth-service CreateAdminDto rules so users get feedback before submitting. */
-export const ADMIN_PASSWORD_PATTERN = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{12,128}$/;
+export const MERCHANT_PASSWORD_PATTERN = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{12,128}$/;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_PATTERN = /^\+?[0-9\s\-()]{7,20}$/;
 
-export interface AdminFormValues {
+export interface MerchantFormValues {
   name: string;
   email: string;
   phone: string;
@@ -13,10 +13,10 @@ export interface AdminFormValues {
   confirmPassword?: string;
 }
 
-export type AdminFormErrors = Partial<Record<keyof AdminFormValues, string>>;
+export type MerchantFormErrors = Partial<Record<keyof MerchantFormValues, string>>;
 
-export function validateAdminForm(values: AdminFormValues, { requirePassword }: { requirePassword: boolean }): AdminFormErrors {
-  const errors: AdminFormErrors = {};
+export function validateMerchantForm(values: MerchantFormValues, { requirePassword }: { requirePassword: boolean }): MerchantFormErrors {
+  const errors: MerchantFormErrors = {};
   const name = values.name.trim();
   const email = values.email.trim();
   const phone = values.phone.trim();
@@ -31,7 +31,7 @@ export function validateAdminForm(values: AdminFormValues, { requirePassword }: 
 
   if (requirePassword) {
     if (!values.password) errors.password = 'A temporary password is required.';
-    else if (!ADMIN_PASSWORD_PATTERN.test(values.password)) {
+    else if (!MERCHANT_PASSWORD_PATTERN.test(values.password)) {
       errors.password = 'Use 12+ characters with upper-case, lower-case, a number and a symbol.';
     }
     if (values.password && values.confirmPassword !== values.password) {
@@ -43,10 +43,10 @@ export function validateAdminForm(values: AdminFormValues, { requirePassword }: 
 
 const AUDIT_ACTION_LABELS: Record<string, string> = {
   'superadmin.bootstrapped': 'Superadmin provisioned',
-  'admin.created': 'Admin created',
-  'admin.updated': 'Admin updated',
-  'admin.activated': 'Admin activated',
-  'admin.deactivated': 'Admin deactivated',
+  'merchant.created': 'Merchant created',
+  'merchant.updated': 'Merchant updated',
+  'merchant.activated': 'Merchant activated',
+  'merchant.deactivated': 'Merchant deactivated',
 };
 
 export function describeAuditLog(entry: AuditLogEntry): { title: string; detail: string } {

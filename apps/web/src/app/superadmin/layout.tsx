@@ -8,9 +8,9 @@ export const metadata: Metadata = {
 };
 
 /**
- * `/superadmin/*` is superadmin-only. Customers and admins are redirected to their
+ * `/superadmin/*` is superadmin-only. Customers and merchants are redirected to their
  * own dashboards; the auth service independently enforces the superadmin role
- * on every admin-management endpoint.
+ * on every merchant-management endpoint.
  */
 export default function SuperadminRouteLayout({ children }: { children: React.ReactNode }) {
   return (

@@ -17,11 +17,11 @@ import {
   ToastContainer,
   UsersIcon,
 } from '@/components/ui';
-import { useAdminToasts } from '@/features/admin/use-admin-toasts';
+import { useAdminToasts } from '@/features/admin/use-merchant-toasts';
 import { ApiError } from '@/lib/api-client';
 import { cn } from '@/lib/cn';
-import { getAdminAccounts, setAdminAccountStatus } from './superadmin-api';
-import type { AdminAccount, AdminAccountsResponse, AdminStatusFilter } from './types';
+import { getMerchantAccounts, setMerchantAccountStatus } from './superadmin-api';
+import type { MerchantAccount, MerchantAccountsResponse, MerchantStatusFilter } from './types';
 
 const PAGE_SIZE = 20;
 const dateFormat = new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -33,43 +33,43 @@ function StatusBadge({ active }: { active: boolean }) {
   return <Badge variant={active ? 'success' : 'neutral'}>{active ? 'Active' : 'Deactivated'}</Badge>;
 }
 
-function RowActions({ admin, pending, onToggle }: { admin: AdminAccount; pending: boolean; onToggle: (a: AdminAccount) => void }) {
+function RowActions({ merchant, pending, onToggle }: { merchant: MerchantAccount; pending: boolean; onToggle: (a: MerchantAccount) => void }) {
   return (
     <div className="flex items-center justify-end gap-1.5">
       <Link
-        href={`/superadmin/admins/${admin.id}`}
+        href={`/superadmin/merchants/${merchant.id}`}
         className={buttonClasses({ variant: 'ghost', size: 'sm', className: 'h-10 px-3' })}
-        aria-label={`View ${admin.name}`}
+        aria-label={`View ${merchant.name}`}
       >
         <PencilIcon className="h-4 w-4" />
         <span className="hidden sm:inline">Manage</span>
       </Link>
       <button
         type="button"
-        onClick={() => onToggle(admin)}
+        onClick={() => onToggle(merchant)}
         disabled={pending}
         className={buttonClasses({
           variant: 'secondary',
           size: 'sm',
-          className: cn('h-10 min-w-[7.5rem]', admin.isActive ? 'text-ink' : 'text-success'),
+          className: cn('h-10 min-w-[7.5rem]', merchant.isActive ? 'text-ink' : 'text-success'),
         })}
       >
         {pending && <SpinnerIcon className="h-4 w-4" />}
-        {admin.isActive ? 'Deactivate' : 'Activate'}
+        {merchant.isActive ? 'Deactivate' : 'Activate'}
       </button>
     </div>
   );
 }
 
-export function AdminAccountManager() {
+export function MerchantAccountManager() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toasts, showToast, dismissToast } = useAdminToasts();
-  const [result, setResult] = useState<AdminAccountsResponse | null>(null);
+  const [result, setResult] = useState<MerchantAccountsResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [status, setStatus] = useState<AdminStatusFilter>('all');
+  const [status, setStatus] = useState<MerchantStatusFilter>('all');
   const [page, setPage] = useState(1);
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
 
@@ -84,9 +84,9 @@ export function AdminAccountManager() {
   const load = useCallback(async () => {
     setError(null);
     try {
-      setResult(await getAdminAccounts({ search: debouncedSearch, status, page, limit: PAGE_SIZE }));
+      setResult(await getMerchantAccounts({ search: debouncedSearch, status, page, limit: PAGE_SIZE }));
     } catch (err) {
-      setError(errorMessage(err, 'Unable to load admin accounts.'));
+      setError(errorMessage(err, 'Unable to load merchant accounts.'));
     }
   }, [debouncedSearch, status, page]);
 
@@ -97,43 +97,43 @@ export function AdminAccountManager() {
   const created = searchParams.get('created');
   useEffect(() => {
     if (created) {
-      showToast('Admin account created successfully.');
-      router.replace('/superadmin/admins', { scroll: false });
+      showToast('Merchant account created successfully.');
+      router.replace('/superadmin/merchants', { scroll: false });
     }
   }, [created, showToast, router]);
 
-  const handleToggle = async (admin: AdminAccount) => {
-    if (admin.isActive && !window.confirm(`Deactivate ${admin.name}? They will be signed out of every session immediately.`)) {
+  const handleToggle = async (merchant: MerchantAccount) => {
+    if (merchant.isActive && !window.confirm(`Deactivate ${merchant.name}? They will be signed out of every session immediately.`)) {
       return;
     }
-    setPendingIds((prev) => new Set(prev).add(admin.id));
+    setPendingIds((prev) => new Set(prev).add(merchant.id));
     try {
-      const updated = await setAdminAccountStatus(admin.id, !admin.isActive);
+      const updated = await setMerchantAccountStatus(merchant.id, !merchant.isActive);
       showToast(`${updated.name} is now ${updated.isActive ? 'active' : 'deactivated'}.`);
       await load();
     } catch (err) {
-      showToast(errorMessage(err, 'Unable to update admin status.'), 'error');
+      showToast(errorMessage(err, 'Unable to update merchant status.'), 'error');
     } finally {
       setPendingIds((prev) => {
         const next = new Set(prev);
-        next.delete(admin.id);
+        next.delete(merchant.id);
         return next;
       });
     }
   };
 
-  const admins = result?.data ?? [];
+  const merchants = result?.data ?? [];
   const counts = result ? { all: result.summary.total, active: result.summary.active, inactive: result.summary.inactive } : null;
 
   return (
     <>
       <AdminPageHeader
-        title="Admin accounts"
-        description="Create, review and deactivate store administrators. Deactivating an admin revokes all of their sessions immediately."
+        title="Merchant accounts"
+        description="Create, review and deactivate merchants. Deactivating an merchant revokes all of their sessions immediately."
         actions={
-          <Link href="/superadmin/admins/create" className={buttonClasses({ variant: 'accent', size: 'md' })}>
+          <Link href="/superadmin/merchants/create" className={buttonClasses({ variant: 'accent', size: 'md' })}>
             <PlusIcon className="h-4 w-4" />
-            Create admin
+            Create merchant
           </Link>
         }
       />
@@ -145,9 +145,9 @@ export function AdminAccountManager() {
           <div className="flex flex-col gap-3 border-b border-line p-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="relative w-full sm:max-w-xs">
               <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" />
-              <label htmlFor="admin-search" className="sr-only">Search admins</label>
+              <label htmlFor="merchant-search" className="sr-only">Search merchants</label>
               <input
-                id="admin-search"
+                id="merchant-search"
                 type="search"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -179,7 +179,7 @@ export function AdminAccountManager() {
           </div>
 
           {!result && (
-            <div className="space-y-3 p-4" aria-label="Loading admin accounts">
+            <div className="space-y-3 p-4" aria-label="Loading merchant accounts">
               {Array.from({ length: 4 }).map((_, i) => (
                 <Skeleton key={i} className="h-12 w-full" />
               ))}
@@ -189,29 +189,29 @@ export function AdminAccountManager() {
           {result && result.summary.total === 0 && (
             <AdminNotice
               icon={UsersIcon}
-              title="No admin accounts yet"
+              title="No merchant accounts yet"
               description="Create the first store administrator to delegate catalog and order management."
               className="border-0 shadow-none"
               action={
-                <Link href="/superadmin/admins/create" className={buttonClasses({ size: 'sm' })}>
+                <Link href="/superadmin/merchants/create" className={buttonClasses({ size: 'sm' })}>
                   <PlusIcon className="h-4 w-4" />
-                  Create admin
+                  Create merchant
                 </Link>
               }
             />
           )}
 
-          {result && result.summary.total > 0 && admins.length === 0 && (
-            <p className="px-4 py-12 text-center text-sm text-ink-muted">No admin accounts match your filters.</p>
+          {result && result.summary.total > 0 && merchants.length === 0 && (
+            <p className="px-4 py-12 text-center text-sm text-ink-muted">No merchant accounts match your filters.</p>
           )}
 
-          {admins.length > 0 && (
+          {merchants.length > 0 && (
             <>
               <div className="hidden overflow-x-auto md:block">
                 <table className="w-full text-left text-sm">
                   <thead className="border-b border-line bg-surface-muted/60 text-xs font-semibold uppercase tracking-wide text-ink-muted">
                     <tr>
-                      <th scope="col" className="px-4 py-3">Admin</th>
+                      <th scope="col" className="px-4 py-3">Merchant</th>
                       <th scope="col" className="hidden px-4 py-3 lg:table-cell">Phone</th>
                       <th scope="col" className="px-4 py-3">Status</th>
                       <th scope="col" className="hidden px-4 py-3 xl:table-cell">Created</th>
@@ -219,17 +219,17 @@ export function AdminAccountManager() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-line">
-                    {admins.map((admin) => (
-                      <tr key={admin.id} className="hover:bg-surface-muted/40">
+                    {merchants.map((merchant) => (
+                      <tr key={merchant.id} className="hover:bg-surface-muted/40">
                         <td className="px-4 py-3">
-                          <p className="font-medium text-ink">{admin.name}</p>
-                          <p className="text-xs text-ink-muted">{admin.email}</p>
+                          <p className="font-medium text-ink">{merchant.name}</p>
+                          <p className="text-xs text-ink-muted">{merchant.email}</p>
                         </td>
-                        <td className="hidden px-4 py-3 text-ink-secondary lg:table-cell">{admin.phone ?? '—'}</td>
-                        <td className="px-4 py-3"><StatusBadge active={admin.isActive} /></td>
-                        <td className="hidden px-4 py-3 text-ink-muted xl:table-cell">{dateFormat.format(new Date(admin.createdAt))}</td>
+                        <td className="hidden px-4 py-3 text-ink-secondary lg:table-cell">{merchant.phone ?? '—'}</td>
+                        <td className="px-4 py-3"><StatusBadge active={merchant.isActive} /></td>
+                        <td className="hidden px-4 py-3 text-ink-muted xl:table-cell">{dateFormat.format(new Date(merchant.createdAt))}</td>
                         <td className="px-4 py-3">
-                          <RowActions admin={admin} pending={pendingIds.has(admin.id)} onToggle={handleToggle} />
+                          <RowActions merchant={merchant} pending={pendingIds.has(merchant.id)} onToggle={handleToggle} />
                         </td>
                       </tr>
                     ))}
@@ -238,17 +238,17 @@ export function AdminAccountManager() {
               </div>
 
               <ul className="divide-y divide-line md:hidden">
-                {admins.map((admin) => (
-                  <li key={admin.id} className="p-4">
+                {merchants.map((merchant) => (
+                  <li key={merchant.id} className="p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="truncate font-medium text-ink">{admin.name}</p>
-                        <p className="truncate text-xs text-ink-muted">{admin.email}</p>
+                        <p className="truncate font-medium text-ink">{merchant.name}</p>
+                        <p className="truncate text-xs text-ink-muted">{merchant.email}</p>
                       </div>
-                      <StatusBadge active={admin.isActive} />
+                      <StatusBadge active={merchant.isActive} />
                     </div>
                     <div className="mt-3">
-                      <RowActions admin={admin} pending={pendingIds.has(admin.id)} onToggle={handleToggle} />
+                      <RowActions merchant={merchant} pending={pendingIds.has(merchant.id)} onToggle={handleToggle} />
                     </div>
                   </li>
                 ))}

@@ -1,5 +1,5 @@
 /**
- * Contracts for the admin-only catalog API (`/api/v1/catalog/admin/*`)
+ * Contracts for the merchant-only catalog API (`/api/v1/catalog/admin/*`)
  * served by apps/catalog-service AdminController.
  */
 

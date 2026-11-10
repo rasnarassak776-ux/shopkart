@@ -10,12 +10,12 @@ export default function AdminSettingsPage() {
 
   return (
     <>
-      <AdminPageHeader title="Settings" description="Your administrator account and console preferences." />
+      <AdminPageHeader title="Settings" description="Your merchant account and console preferences." />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <AdminPanel className="lg:col-span-2">
           <div className="border-b border-line px-5 py-4">
-            <h2 className="font-display text-base font-semibold text-ink">Administrator account</h2>
+            <h2 className="font-display text-base font-semibold text-ink">Merchant account</h2>
           </div>
           <dl className="grid gap-x-6 gap-y-4 p-5 text-sm sm:grid-cols-2">
             <div>

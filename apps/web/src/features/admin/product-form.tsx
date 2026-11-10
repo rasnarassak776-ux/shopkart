@@ -140,8 +140,8 @@ export function ProductForm({ product, categories, onSaved }: ProductFormProps) 
         };
 
         const created = await createAdminProduct(createPayload);
-        // Direct admin to the edit page to immediately upload product images
-        router.push(`/admin/products/${created.id}/edit?saved=created`);
+        // Direct merchant to the edit page to immediately upload product images
+        router.push(`/merchant/products/${created.id}/edit?saved=created`);
       }
     } catch (err) {
       const message =
@@ -429,7 +429,7 @@ export function ProductForm({ product, categories, onSaved }: ProductFormProps) 
         {/* Action buttons */}
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end lg:flex-col-reverse lg:items-stretch">
           <Link
-            href="/admin/products"
+            href="/merchant/products"
             className={buttonClasses({
               variant: 'secondary',
               className: 'sm:min-w-[8rem]',

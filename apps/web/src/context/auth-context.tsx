@@ -41,7 +41,7 @@ export interface AuthUser {
   name: string;
   email: string;
   phone?: string | null;
-  role: 'customer' | 'admin' | 'superadmin' | string;
+  role: 'customer' | 'merchant' | 'superadmin' | string;
   createdAt?: string;
 }
 

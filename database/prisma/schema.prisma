@@ -105,6 +105,9 @@ model Category {
 model Product {
   id          String   @id @default(uuid()) @db.Uuid
   categoryId  String   @map("category_id") @db.Uuid
+  // Owning merchant (auth.users.id). NULL for platform-owned legacy products,
+  // which only superadmins can manage.
+  merchantId  String?  @map("merchant_id") @db.Uuid
   name        String   @db.VarChar(180)
   slug        String?  @unique @db.VarChar(200)
   sku         String   @unique @db.VarChar(80)
@@ -120,6 +123,7 @@ model Product {
 
   @@index([categoryId])
   @@index([categoryId, isActive])
+  @@index([merchantId])
   @@index([name])
   @@map("products")
   @@schema("catalog")

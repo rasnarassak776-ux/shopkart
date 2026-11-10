@@ -17,11 +17,11 @@ async function main() {
     },
   });
 
-  const adminRole = await prisma.role.upsert({
-    where: { name: "admin" },
+  const merchantRole = await prisma.role.upsert({
+    where: { name: "merchant" },
     update: {},
     create: {
-      name: "admin",
+      name: "merchant",
     },
   });
 
@@ -293,7 +293,7 @@ async function main() {
 
   // Avoid unused-variable warnings if strict TypeScript is enabled.
   console.log(
-    `Created or verified roles: ${customerRole.name}, ${adminRole.name}, ${superadminRole.name}`,
+    `Created or verified roles: ${customerRole.name}, ${merchantRole.name}, ${superadminRole.name}`,
   );
 }
 

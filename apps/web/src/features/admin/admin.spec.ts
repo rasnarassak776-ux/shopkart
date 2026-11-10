@@ -16,7 +16,7 @@ const category = (id: string, name: string, parentId: string | null, isActive = 
   _count: { products: 0, children: 0 },
 });
 
-describe('admin navigation', () => {
+describe('merchant navigation', () => {
   const items = adminNavSections.flatMap((s) => s.items);
   const item = (label: string) => items.find((i) => i.label === label)!;
 
@@ -33,47 +33,47 @@ describe('admin navigation', () => {
   });
 
   it('marks modules owned by other services as coming soon', () => {
-    for (const label of ['Orders', 'Inventory', 'Customers']) {
-      expect(item(label).availability).toBe('coming-soon');
-    }
+    expect(item('Orders').availability).toBe('available');
+    expect(item('Inventory').availability).toBe('available');
+    expect(item('Customers').availability).toBe('coming-soon');
     expect(item('Products').availability).toBe('available');
     expect(item('Categories').availability).toBe('available');
   });
 
   it('matches overview exactly and sections by prefix', () => {
-    expect(isNavItemActive(item('Overview'), '/admin')).toBe(true);
-    expect(isNavItemActive(item('Overview'), '/admin/categories')).toBe(false);
-    expect(isNavItemActive(item('Categories'), '/admin/categories/abc/edit')).toBe(true);
-    expect(isNavItemActive(item('Categories'), '/admin/categoriesx')).toBe(false);
+    expect(isNavItemActive(item('Overview'), '/merchant')).toBe(true);
+    expect(isNavItemActive(item('Overview'), '/merchant/categories')).toBe(false);
+    expect(isNavItemActive(item('Categories'), '/merchant/categories/abc/edit')).toBe(true);
+    expect(isNavItemActive(item('Categories'), '/merchant/categoriesx')).toBe(false);
   });
 
   it('builds breadcrumbs with a non-linked current page', () => {
-    expect(getAdminBreadcrumbs('/admin')).toEqual([{ label: 'Admin', href: '/admin' }, { label: 'Overview' }]);
-    expect(getAdminBreadcrumbs('/admin/categories')).toEqual([
-      { label: 'Admin', href: '/admin' },
+    expect(getAdminBreadcrumbs('/merchant')).toEqual([{ label: 'Merchant', href: '/merchant' }, { label: 'Overview' }]);
+    expect(getAdminBreadcrumbs('/merchant/categories')).toEqual([
+      { label: 'Merchant', href: '/merchant' },
       { label: 'Categories' },
     ]);
-    expect(getAdminBreadcrumbs('/admin/categories/new')).toEqual([
-      { label: 'Admin', href: '/admin' },
-      { label: 'Categories', href: '/admin/categories' },
+    expect(getAdminBreadcrumbs('/merchant/categories/new')).toEqual([
+      { label: 'Merchant', href: '/merchant' },
+      { label: 'Categories', href: '/merchant/categories' },
       { label: 'New category' },
     ]);
-    expect(getAdminBreadcrumbs('/admin/categories/123/edit').at(-1)).toEqual({ label: 'Edit category' });
-    expect(getAdminBreadcrumbs('/admin/products')).toEqual([
-      { label: 'Admin', href: '/admin' },
+    expect(getAdminBreadcrumbs('/merchant/categories/123/edit').at(-1)).toEqual({ label: 'Edit category' });
+    expect(getAdminBreadcrumbs('/merchant/products')).toEqual([
+      { label: 'Merchant', href: '/merchant' },
       { label: 'Products' },
     ]);
-    expect(getAdminBreadcrumbs('/admin/products/new')).toEqual([
-      { label: 'Admin', href: '/admin' },
-      { label: 'Products', href: '/admin/products' },
+    expect(getAdminBreadcrumbs('/merchant/products/new')).toEqual([
+      { label: 'Merchant', href: '/merchant' },
+      { label: 'Products', href: '/merchant/products' },
       { label: 'New product' },
     ]);
-    expect(getAdminBreadcrumbs('/admin/products/prod-123/edit').at(-1)).toEqual({ label: 'Edit product' });
+    expect(getAdminBreadcrumbs('/merchant/products/prod-123/edit').at(-1)).toEqual({ label: 'Edit product' });
   });
 
-  it('only hides storefront chrome on admin routes', () => {
-    expect(isAdminPath('/admin')).toBe(true);
-    expect(isAdminPath('/admin/categories')).toBe(true);
+  it('only hides storefront chrome on merchant routes', () => {
+    expect(isAdminPath('/merchant')).toBe(true);
+    expect(isAdminPath('/merchant/categories')).toBe(true);
     expect(isAdminPath('/administrator')).toBe(false);
     expect(isAdminPath('/customer/dashboard')).toBe(false);
     expect(isAdminPath('/')).toBe(false);

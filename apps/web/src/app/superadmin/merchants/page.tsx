@@ -1,10 +1,10 @@
 import { Suspense } from 'react';
-import { AdminAccountManager } from '@/features/superadmin';
+import { MerchantAccountManager } from '@/features/superadmin';
 
 export default function SuperadminAdminsPage() {
   return (
     <Suspense>
-      <AdminAccountManager />
+      <MerchantAccountManager />
     </Suspense>
   );
 }

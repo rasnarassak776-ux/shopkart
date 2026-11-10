@@ -1,6 +1,6 @@
 # Shopkart – Authentication & Role-Based Access Control
 
-Covers Customer, Admin and Superadmin authentication across `apps/auth-service`,
+Covers Customer, Merchant and Superadmin authentication across `apps/auth-service`,
 `apps/web` and `packages/common`.
 
 ## 1. Architecture
@@ -25,16 +25,16 @@ loads the user and rejects missing or deactivated accounts.
 | Role | Can do | How the account is created |
 |---|---|---|
 | `customer` | Storefront, cart, checkout, own orders, profile, addresses | Public `POST /api/v1/auth/register` |
-| `admin` | Store admin console: catalog (products, categories), orders | A superadmin creates it via `POST /api/v1/admins` |
-| `superadmin` | Everything an admin can do, plus admin account management and the audit trail | One-time CLI bootstrap (section 4) |
+| `merchant` | Merchant console: catalog (products, categories), orders | A superadmin creates it via `POST /api/v1/merchants` |
+| `superadmin` | Everything a merchant can do, plus merchant account management and the audit trail | One-time CLI bootstrap (section 4) |
 
-The hierarchy is explicit, not implicit. Admin functionality is declared with
-`@Roles(UserRole.ADMIN, UserRole.SUPERADMIN)`. Superadmin-only routes are
+The hierarchy is explicit, not implicit. Merchant-console functionality is declared with
+`@Roles(UserRole.MERCHANT, UserRole.SUPERADMIN)`. Superadmin-only routes are
 declared with `@Roles(UserRole.SUPERADMIN)`.
 
 ## 3. Database
 
-- `auth.roles` contains `customer`, `admin` and `superadmin`. The `superadmin`
+- `auth.roles` contains `customer`, `merchant` and `superadmin`. The `superadmin`
   role is inserted by migration
   `20261110090000_add_superadmin_role_and_audit_logs`, which is idempotent, and
   also by `prisma/seed.ts`.
@@ -44,8 +44,8 @@ declared with `@Roles(UserRole.SUPERADMIN)`.
   action, target, metadata, IP and user agent. It has no foreign keys, so entries
   survive account changes. It never stores passwords, hashes or tokens.
 
-Actions recorded: `superadmin.bootstrapped`, `admin.created`, `admin.updated`,
-`admin.activated`, `admin.deactivated`.
+Actions recorded: `superadmin.bootstrapped`, `merchant.created`, `merchant.updated`,
+`merchant.activated`, `merchant.deactivated`.
 
 ## 4. Initial Superadmin provisioning
 
@@ -75,7 +75,7 @@ Behaviour (`apps/auth-service/src/scripts/bootstrap-superadmin.ts`):
 - After provisioning, remove `SUPERADMIN_PASSWORD` from the environment.
 
 No HTTP endpoint can create, promote, demote or deactivate a superadmin. The
-admin-management API is scoped to `admin` accounts only. This means the last
+merchant-management API is scoped to `merchant` accounts only. This means the last
 superadmin cannot be locked out through the API.
 
 ## 5. Login flow
@@ -90,7 +90,7 @@ superadmin cannot be locked out through the API.
    set.
 5. The web app redirects with `resolvePostLoginRedirect(role, returnUrl)`:
    - customer → `/customer/dashboard`
-   - admin → `/admin/dashboard`
+   - merchant → `/merchant/dashboard`
    - superadmin → `/superadmin/dashboard`
 
    A `returnUrl` is honoured only if it is a same-origin relative path that the
@@ -121,15 +121,15 @@ against the database on every request.
   fixed-window limit, keyed per user id or per IP for anonymous requests. It
   fails open if Redis is down.
 - The global `ValidationPipe` uses `whitelist` and `forbidNonWhitelisted`, so
-  `role` and `roleId` can never be injected into register, profile or admin
+  `role` and `roleId` can never be injected into register, profile or merchant
   DTOs.
 
 | Endpoint | Roles |
 |---|---|
 | `POST /auth/register`, `POST /auth/login`, `POST /auth/refresh`, forgot/reset password | public |
 | `GET /auth/me`, `/users/me*`, `/addresses*`, `POST /auth/logout` | any authenticated user |
-| `GET /auth/admin-only`, catalog-service `/catalog/admin/*` | admin, superadmin |
-| `/admins*`, `GET /audit-logs` | superadmin |
+| `GET /auth/merchant-only`, catalog-service `/catalog/admin/*` | merchant, superadmin |
+| `/merchants*`, `GET /audit-logs` | superadmin |
 
 ## 8. Frontend route protection
 
@@ -149,33 +149,33 @@ is used instead.
 | Area | Allowed roles |
 |---|---|
 | `/customer/*`, `/addresses` | customer |
-| `/admin/*` | admin, superadmin |
+| `/admin/*` | merchant, superadmin |
 | `/superadmin/*` | superadmin |
 | `/profile` | all roles |
 
 Navigation follows the role. The account menu (`getAccountLinks`) and console
 sidebar (`getConsoleNavSections`) only list destinations the role can use.
-Superadmins see a "Superadmin" section above the inherited admin sections.
+Superadmins see a "Superadmin" section above the inherited merchant sections.
 **Hiding UI is a convenience, not a control.** Every API enforces roles
 server-side.
 
-## 9. Admin account management (superadmin)
+## 9. Merchant account management (superadmin)
 
 | Method & path | Purpose |
 |---|---|
-| `POST /api/v1/admins` | Create an admin (`name`, `email`, `password`, optional `phone`). The role is always `admin`. Requires a strong password (12+ characters with upper, lower, digit and symbol). Limited to 10 per minute. |
-| `GET /api/v1/admins?search=&status=all\|active\|inactive&page=&limit=` | Paginated list plus `summary { total, active, inactive }` |
-| `GET /api/v1/admins/:id` | Details |
-| `PATCH /api/v1/admins/:id` | Update `name`, `email`, `phone` (role and password cannot be changed here) |
-| `PATCH /api/v1/admins/:id/status` | `{ isActive }`. Deactivating revokes every session at once. |
+| `POST /api/v1/merchants` | Create a merchant (`name`, `email`, `password`, optional `phone`). The role is always `merchant`. Requires a strong password (12+ characters with upper, lower, digit and symbol). Limited to 10 per minute. |
+| `GET /api/v1/merchants?search=&status=all\|active\|inactive&page=&limit=` | Paginated list plus `summary { total, active, inactive }` |
+| `GET /api/v1/merchants/:id` | Details |
+| `PATCH /api/v1/merchants/:id` | Update `name`, `email`, `phone` (role and password cannot be changed here) |
+| `PATCH /api/v1/merchants/:id/status` | `{ isActive }`. Deactivating revokes every session at once. |
 | `GET /api/v1/audit-logs?limit=` | Recent privileged actions |
 
-Every query is scoped to accounts that have the `admin` role. A customer or
+Every query is scoped to accounts that have the `merchant` role. A customer or
 superadmin id returns 404. Every mutation and its audit entry are written in
 one transaction.
 
-UI: `/superadmin/dashboard`, `/superadmin/admins`, `/superadmin/admins/create`,
-`/superadmin/admins/:id`, `/superadmin/settings`.
+UI: `/superadmin/dashboard`, `/superadmin/merchants`, `/superadmin/merchants/create`,
+`/superadmin/merchants/:id`, `/superadmin/settings`.
 
 ## 10. Environment & setup
 
@@ -202,20 +202,20 @@ Automated tests:
 
 ```bash
 npm test -w auth-service   # HTTP RBAC suite (real Nest app, guards, JWT, validation; in-memory DB), bootstrap, guards
-npm test -w web            # redirects, route rules, session restore, role-aware nav, admin form
+npm test -w web            # redirects, route rules, session restore, role-aware nav, merchant form
 npm test -w catalog-service
 ```
 
 Manual checks:
 
 1. **Customer:** register at `/register`, then log in and land on
-   `/customer/dashboard`. Visiting `/admin` or `/superadmin` sends you back to
+   `/customer/dashboard`. Visiting `/merchant` or `/superadmin` sends you back to
    `/customer/dashboard`.
 2. **Superadmin:** run the bootstrap, then log in and land on
-   `/superadmin/dashboard`. Create an admin at `/superadmin/admins/create`.
-   `/admin/products` also works.
-3. **Admin:** log in with the new admin and land on `/admin/dashboard`. Visiting
-   `/superadmin/*` redirects to `/admin/dashboard`. `GET /api/v1/admins` returns
+   `/superadmin/dashboard`. Create a merchant at `/superadmin/merchants/create`.
+   `/merchant/products` also works.
+3. **Merchant:** log in with the new merchant and land on `/merchant/dashboard`. Visiting
+   `/superadmin/*` redirects to `/merchant/dashboard`. `GET /api/v1/merchants` returns
    403.
-4. **Deactivation:** as the superadmin, deactivate the admin. The admin's
+4. **Deactivation:** as the superadmin, deactivate the merchant. The merchant's
    current tab gets 401 on its next API call, and logging in again fails.

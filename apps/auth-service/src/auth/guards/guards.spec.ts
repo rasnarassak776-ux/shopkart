@@ -2,7 +2,7 @@ import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { ROLES_KEY } from '@shopkart/common';
-import { AdminsController } from '../../admins/admins.controller';
+import { MerchantsController } from '../../merchants/merchants.controller';
 import { AuditLogsController } from '../../audit/audit-logs.controller';
 import { RedisService } from '../../redis/redis.service';
 import { RATE_LIMIT_KEY } from '../decorators/rate-limit.decorator';
@@ -27,12 +27,12 @@ describe('superadmin-only controllers', () => {
   const reflector = new Reflector();
   const guard = new RolesGuard(reflector);
 
-  it.each([AdminsController, AuditLogsController])('%p requires JWT + superadmin on every handler', (controller) => {
+  it.each([MerchantsController, AuditLogsController])('%p requires JWT + superadmin on every handler', (controller) => {
     expect(Reflect.getMetadata(GUARDS_METADATA, controller)).toEqual(expect.arrayContaining([JwtAuthGuard, RolesGuard]));
     for (const handler of handlersOf(controller)) {
       expect(reflector.getAllAndOverride(ROLES_KEY, [handler, controller])).toEqual(['superadmin']);
       expect(guard.canActivate(contextFor(controller, handler, { user: { role: 'superadmin' } }))).toBe(true);
-      for (const role of ['admin', 'customer', undefined]) {
+      for (const role of ['merchant', 'customer', undefined]) {
         expect(() => guard.canActivate(contextFor(controller, handler, { user: role && { role } }))).toThrow(
           ForbiddenException,
         );
@@ -40,13 +40,13 @@ describe('superadmin-only controllers', () => {
     }
   });
 
-  it('rate-limits every admin-management handler, with a stricter limit for creation', () => {
-    for (const handler of handlersOf(AdminsController)) {
-      expect(reflector.getAllAndOverride(RATE_LIMIT_KEY, [handler, AdminsController])).toBeDefined();
+  it('rate-limits every merchant-management handler, with a stricter limit for creation', () => {
+    for (const handler of handlersOf(MerchantsController)) {
+      expect(reflector.getAllAndOverride(RATE_LIMIT_KEY, [handler, MerchantsController])).toBeDefined();
     }
     expect(
-      reflector.getAllAndOverride(RATE_LIMIT_KEY, [AdminsController.prototype.create, AdminsController]),
-    ).toMatchObject({ name: 'admin_create', limit: 10 });
+      reflector.getAllAndOverride(RATE_LIMIT_KEY, [MerchantsController.prototype.create, MerchantsController]),
+    ).toMatchObject({ name: 'merchant_create', limit: 10 });
   });
 });
 

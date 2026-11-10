@@ -11,5 +11,5 @@
 - `prisma generate` may fail with EPERM renaming the query-engine DLL while services are running. The JS/TS client is still regenerated.
 
 ## Auth / RBAC
-- See `docs/authentication-rbac.md`. Roles: customer, admin, superadmin. Superadmin access to admin features must be explicit: `@Roles(UserRole.ADMIN, UserRole.SUPERADMIN)`.
+- See `docs/authentication-rbac.md`. Roles: customer, merchant, superadmin. Superadmin access to merchant-console features must be explicit: `@Roles(UserRole.MERCHANT, UserRole.SUPERADMIN)`. Merchants are scoped to their own products via `catalog.products.merchant_id`.
 - Superadmin provisioning: `npm run bootstrap:superadmin -w auth-service` with `SUPERADMIN_EMAIL` and `SUPERADMIN_PASSWORD` set.

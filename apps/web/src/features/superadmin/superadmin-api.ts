@@ -1,20 +1,20 @@
 import { apiClient } from '@/lib/api-client';
 import type {
-  AdminAccount,
-  AdminAccountsQuery,
-  AdminAccountsResponse,
+  MerchantAccount,
+  MerchantAccountsQuery,
+  MerchantAccountsResponse,
   AuditLogEntry,
-  CreateAdminInput,
-  UpdateAdminInput,
+  CreateMerchantInput,
+  UpdateMerchantInput,
 } from './types';
 
 /**
  * Superadmin endpoints on the auth service. The backend enforces JWT + the
  * `superadmin` role on every route; these helpers only shape requests.
  */
-const ADMINS_BASE = '/api/v1/admins';
+const MERCHANTS_BASE = '/api/v1/merchants';
 
-export function buildAdminsQueryString(query: AdminAccountsQuery = {}): string {
+export function buildMerchantsQueryString(query: MerchantAccountsQuery = {}): string {
   const params = new URLSearchParams();
   if (query.search?.trim()) params.set('search', query.search.trim());
   if (query.status && query.status !== 'all') params.set('status', query.status);
@@ -24,36 +24,36 @@ export function buildAdminsQueryString(query: AdminAccountsQuery = {}): string {
   return qs ? `?${qs}` : '';
 }
 
-export function getAdminAccounts(query?: AdminAccountsQuery): Promise<AdminAccountsResponse> {
-  return apiClient<AdminAccountsResponse>(`${ADMINS_BASE}${buildAdminsQueryString(query)}`);
+export function getMerchantAccounts(query?: MerchantAccountsQuery): Promise<MerchantAccountsResponse> {
+  return apiClient<MerchantAccountsResponse>(`${MERCHANTS_BASE}${buildMerchantsQueryString(query)}`);
 }
 
-export async function getAdminAccount(id: string): Promise<AdminAccount> {
-  return (await apiClient<{ admin: AdminAccount }>(`${ADMINS_BASE}/${encodeURIComponent(id)}`)).admin;
+export async function getMerchantAccount(id: string): Promise<MerchantAccount> {
+  return (await apiClient<{ merchant: MerchantAccount }>(`${MERCHANTS_BASE}/${encodeURIComponent(id)}`)).merchant;
 }
 
-export async function createAdminAccount(input: CreateAdminInput): Promise<AdminAccount> {
-  const res = await apiClient<{ admin: AdminAccount }>(ADMINS_BASE, {
+export async function createMerchantAccount(input: CreateMerchantInput): Promise<MerchantAccount> {
+  const res = await apiClient<{ merchant: MerchantAccount }>(MERCHANTS_BASE, {
     method: 'POST',
     body: JSON.stringify(input),
   });
-  return res.admin;
+  return res.merchant;
 }
 
-export async function updateAdminAccount(id: string, input: UpdateAdminInput): Promise<AdminAccount> {
-  const res = await apiClient<{ admin: AdminAccount }>(`${ADMINS_BASE}/${encodeURIComponent(id)}`, {
+export async function updateMerchantAccount(id: string, input: UpdateMerchantInput): Promise<MerchantAccount> {
+  const res = await apiClient<{ merchant: MerchantAccount }>(`${MERCHANTS_BASE}/${encodeURIComponent(id)}`, {
     method: 'PATCH',
     body: JSON.stringify(input),
   });
-  return res.admin;
+  return res.merchant;
 }
 
-export async function setAdminAccountStatus(id: string, isActive: boolean): Promise<AdminAccount> {
-  const res = await apiClient<{ admin: AdminAccount }>(`${ADMINS_BASE}/${encodeURIComponent(id)}/status`, {
+export async function setMerchantAccountStatus(id: string, isActive: boolean): Promise<MerchantAccount> {
+  const res = await apiClient<{ merchant: MerchantAccount }>(`${MERCHANTS_BASE}/${encodeURIComponent(id)}/status`, {
     method: 'PATCH',
     body: JSON.stringify({ isActive }),
   });
-  return res.admin;
+  return res.merchant;
 }
 
 export async function getRecentAuditLogs(limit = 10): Promise<AuditLogEntry[]> {

@@ -6,14 +6,14 @@ export function getAccountLinks(role: string) {
     case UserRole.SUPERADMIN:
       return [
         { label: 'Superadmin dashboard', href: '/superadmin/dashboard' },
-        { label: 'Manage admins', href: '/superadmin/admins' },
-        { label: 'Admin console', href: '/admin/dashboard' },
+        { label: 'Manage merchants', href: '/superadmin/merchants' },
+        { label: 'Merchant console', href: '/merchant/dashboard' },
         { label: 'Profile & security', href: '/profile' },
       ];
-    case UserRole.ADMIN:
+    case UserRole.MERCHANT:
       return [
-        { label: 'Admin dashboard', href: '/admin/dashboard' },
-        { label: 'Manage orders', href: '/admin/orders' },
+        { label: 'Merchant dashboard', href: '/merchant/dashboard' },
+        { label: 'Manage orders', href: '/merchant/orders' },
         { label: 'Profile & security', href: '/profile' },
       ];
     default:

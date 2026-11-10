@@ -13,9 +13,11 @@ import type { Order } from '../types';
 
 interface OrderCardProps {
   order: Order;
+  /** Override the details link (merchant console uses its own order pages). */
+  detailHref?: string;
 }
 
-export function OrderCard({ order }: OrderCardProps) {
+export function OrderCard({ order, detailHref }: OrderCardProps) {
   const payment = order.payment || (order.payments && order.payments[0]);
   const items = order.items || [];
   const itemCount =
@@ -131,7 +133,7 @@ export function OrderCard({ order }: OrderCardProps) {
 
         {/* Action Button */}
         <div className="shrink-0 flex items-center justify-end">
-          <Link href={`/orders/${order.id}`} className="w-full sm:w-auto">
+          <Link href={detailHref ?? `/orders/${order.id}`} className="w-full sm:w-auto">
             <Button variant="secondary" size="md" className="w-full sm:w-auto font-semibold">
               View Order Details
               <ChevronRightIcon className="ml-1.5 h-4 w-4" />

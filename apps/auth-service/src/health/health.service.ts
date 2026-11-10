@@ -35,9 +35,9 @@ export class HealthService {
       select: { id: true, name: true, createdAt: true },
     });
 
-    // 2. Fetch the seeded admin role
-    const adminRole = await this.prisma.role.findUnique({
-      where: { name: 'admin' },
+    // 2. Fetch the seeded merchant role
+    const merchantRole = await this.prisma.role.findUnique({
+      where: { name: 'merchant' },
       select: { id: true, name: true, createdAt: true },
     });
 
@@ -69,13 +69,13 @@ export class HealthService {
     });
 
     return {
-      success: !!(customerRole && adminRole),
+      success: !!(customerRole && merchantRole),
       timestamp: new Date().toISOString(),
       roles: {
         customerRoleFound: !!customerRole,
         customerRole: customerRole || null,
-        adminRoleFound: !!adminRole,
-        adminRole: adminRole || null,
+        merchantRoleFound: !!merchantRole,
+        merchantRole: merchantRole || null,
       },
       users: {
         totalCount: userCount,

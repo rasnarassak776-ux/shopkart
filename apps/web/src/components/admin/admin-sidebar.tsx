@@ -106,7 +106,7 @@ export function AdminSidebar({ collapsed = false, onToggleCollapsed, onClose, on
         )}
       </div>
 
-      <nav aria-label="Admin" className="flex-1 overflow-y-auto px-3 py-4">
+      <nav aria-label="Merchant" className="flex-1 overflow-y-auto px-3 py-4">
         {navSections.map((section) => (
           <div key={section.title} className="mb-5 last:mb-0">
             {rail ? (

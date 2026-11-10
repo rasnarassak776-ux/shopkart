@@ -44,7 +44,7 @@ import type {
   AdminProductsQuery,
   AdminProductsResponse,
 } from './types';
-import { useAdminToasts } from './use-admin-toasts';
+import { useAdminToasts } from './use-merchant-toasts';
 
 const SAVED_MESSAGES: Record<string, string> = {
   created: 'Product created successfully.',
@@ -120,7 +120,7 @@ export function ProductManager() {
   useEffect(() => {
     if (saved && SAVED_MESSAGES[saved]) {
       showToast(SAVED_MESSAGES[saved]);
-      router.replace('/admin/products', { scroll: false });
+      router.replace('/merchant/products', { scroll: false });
     }
   }, [saved, showToast, router]);
 
@@ -279,7 +279,7 @@ export function ProductManager() {
         description="Manage the complete catalog: create items, configure prices, upload high-resolution media, and control storefront visibility."
         actions={
           <Link
-            href="/admin/products/new"
+            href="/merchant/products/new"
             className={buttonClasses({ variant: 'accent', size: 'md' })}
           >
             <PlusIcon className="h-4 w-4" />
@@ -415,7 +415,7 @@ export function ProductManager() {
               className="border-0 shadow-none"
               action={
                 <Link
-                  href="/admin/products/new"
+                  href="/merchant/products/new"
                   className={buttonClasses({ size: 'sm' })}
                 >
                   <PlusIcon className="h-4 w-4" />
@@ -500,7 +500,7 @@ export function ProductManager() {
                           {/* Name & Slug */}
                           <td className="max-w-xs px-4 py-3">
                             <Link
-                              href={`/admin/products/${product.id}/edit`}
+                              href={`/merchant/products/${product.id}/edit`}
                               className="font-medium text-ink hover:text-accent-600 hover:underline line-clamp-1"
                             >
                               {product.name}
@@ -561,7 +561,7 @@ export function ProductManager() {
 
                               {/* Edit link */}
                               <Link
-                                href={`/admin/products/${product.id}/edit`}
+                                href={`/merchant/products/${product.id}/edit`}
                                 className={buttonClasses({
                                   variant: 'ghost',
                                   size: 'sm',
@@ -642,7 +642,7 @@ export function ProductManager() {
                         <div className="min-w-0 flex-1">
                           <div className="flex items-start justify-between gap-2">
                             <Link
-                              href={`/admin/products/${product.id}/edit`}
+                              href={`/merchant/products/${product.id}/edit`}
                               className="font-medium text-ink hover:underline line-clamp-1"
                             >
                               {product.name}
@@ -675,7 +675,7 @@ export function ProductManager() {
                           <ExternalLinkIcon className="h-4 w-4" />
                         </Link>
                         <Link
-                          href={`/admin/products/${product.id}/edit`}
+                          href={`/merchant/products/${product.id}/edit`}
                           className={buttonClasses({
                             variant: 'secondary',
                             size: 'sm',

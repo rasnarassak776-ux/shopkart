@@ -153,14 +153,14 @@ export class AuthController {
     };
   }
 
-  @Get('admin-only')
+  @Get('merchant-only')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
+  @Roles(UserRole.MERCHANT, UserRole.SUPERADMIN)
   @HttpCode(HttpStatus.OK)
-  async adminOnlyEndpoint(@CurrentUser() user: any) {
+  async merchantOnlyEndpoint(@CurrentUser() user: any) {
     return {
       success: true,
-      message: 'Access granted: Admin authorization verified.',
+      message: 'Access granted: Merchant authorization verified.',
       user,
     };
   }

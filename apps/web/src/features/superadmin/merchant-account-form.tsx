@@ -6,31 +6,31 @@ import { useRouter } from 'next/navigation';
 import { AdminErrorState, AdminPanel } from '@/components/admin';
 import { Button, buttonClasses, FieldError, FieldHint, Input, Label, SpinnerIcon } from '@/components/ui';
 import { ApiError } from '@/lib/api-client';
-import { createAdminAccount, updateAdminAccount } from './superadmin-api';
-import { validateAdminForm, type AdminFormErrors, type AdminFormValues } from './admin-account-utils';
-import type { AdminAccount } from './types';
+import { createMerchantAccount, updateMerchantAccount } from './superadmin-api';
+import { validateMerchantForm, type MerchantFormErrors, type MerchantFormValues } from './merchant-account-utils';
+import type { MerchantAccount } from './types';
 
-interface AdminAccountFormProps {
-  /** Existing admin when editing; omitted when creating. */
-  admin?: AdminAccount;
-  onSaved?: (admin: AdminAccount) => void;
+interface MerchantAccountFormProps {
+  /** Existing merchant when editing; omitted when creating. */
+  merchant?: MerchantAccount;
+  onSaved?: (merchant: MerchantAccount) => void;
 }
 
-export function AdminAccountForm({ admin, onSaved }: AdminAccountFormProps) {
+export function MerchantAccountForm({ merchant, onSaved }: MerchantAccountFormProps) {
   const router = useRouter();
-  const isEdit = Boolean(admin);
-  const [values, setValues] = useState<AdminFormValues>({
-    name: admin?.name ?? '',
-    email: admin?.email ?? '',
-    phone: admin?.phone ?? '',
+  const isEdit = Boolean(merchant);
+  const [values, setValues] = useState<MerchantFormValues>({
+    name: merchant?.name ?? '',
+    email: merchant?.email ?? '',
+    phone: merchant?.phone ?? '',
     password: '',
     confirmPassword: '',
   });
-  const [fieldErrors, setFieldErrors] = useState<AdminFormErrors>({});
+  const [fieldErrors, setFieldErrors] = useState<MerchantFormErrors>({});
   const [serverError, setServerError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const setField = (field: keyof AdminFormValues) => (e: React.ChangeEvent<HTMLInputElement>) => {
+  const setField = (field: keyof MerchantFormValues) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setValues((prev) => ({ ...prev, [field]: e.target.value }));
     if (fieldErrors[field]) setFieldErrors((prev) => ({ ...prev, [field]: undefined }));
   };
@@ -38,14 +38,14 @@ export function AdminAccountForm({ admin, onSaved }: AdminAccountFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setServerError(null);
-    const errors = validateAdminForm(values, { requirePassword: !isEdit });
+    const errors = validateMerchantForm(values, { requirePassword: !isEdit });
     setFieldErrors(errors);
     if (Object.keys(errors).length > 0) return;
 
     setSubmitting(true);
     try {
-      if (admin) {
-        const updated = await updateAdminAccount(admin.id, {
+      if (merchant) {
+        const updated = await updateMerchantAccount(merchant.id, {
           name: values.name.trim(),
           email: values.email.trim().toLowerCase(),
           phone: values.phone.trim(),
@@ -53,25 +53,25 @@ export function AdminAccountForm({ admin, onSaved }: AdminAccountFormProps) {
         onSaved?.(updated);
         setSubmitting(false);
       } else {
-        await createAdminAccount({
+        await createMerchantAccount({
           name: values.name.trim(),
           email: values.email.trim().toLowerCase(),
           password: values.password!,
           ...(values.phone.trim() && { phone: values.phone.trim() }),
         });
-        router.push('/superadmin/admins?created=1');
+        router.push('/superadmin/merchants?created=1');
       }
     } catch (err) {
-      setServerError(err instanceof ApiError || err instanceof Error ? err.message : 'Unable to save the admin account.');
+      setServerError(err instanceof ApiError || err instanceof Error ? err.message : 'Unable to save the merchant account.');
       setSubmitting(false);
     }
   };
 
-  const field = (id: keyof AdminFormValues, label: string, props: React.InputHTMLAttributes<HTMLInputElement>, hint?: string) => (
+  const field = (id: keyof MerchantFormValues, label: string, props: React.InputHTMLAttributes<HTMLInputElement>, hint?: string) => (
     <div>
-      <Label htmlFor={`admin-${id}`}>{label}</Label>
+      <Label htmlFor={`merchant-${id}`}>{label}</Label>
       <Input
-        id={`admin-${id}`}
+        id={`merchant-${id}`}
         value={values[id] ?? ''}
         onChange={setField(id)}
         invalid={Boolean(fieldErrors[id])}
@@ -99,7 +99,7 @@ export function AdminAccountForm({ admin, onSaved }: AdminAccountFormProps) {
           <div>
             <h2 className="font-display text-base font-semibold text-ink">Temporary password</h2>
             <p className="mt-1 text-sm text-ink-secondary">
-              Share it with the admin through a secure channel and ask them to change it from Profile &amp; security after first sign-in.
+              Share it with the merchant through a secure channel and ask them to change it from Profile &amp; security after first sign-in.
             </p>
           </div>
           {field('password', 'Password', { type: 'password', autoComplete: 'new-password', maxLength: 128 }, '12+ characters with upper-case, lower-case, a number and a symbol.')}
@@ -108,16 +108,16 @@ export function AdminAccountForm({ admin, onSaved }: AdminAccountFormProps) {
       )}
 
       <p className="text-xs text-ink-muted">
-        The account is always created with the <span className="font-semibold">admin</span> role. Roles cannot be chosen or changed here.
+        The account is always created with the <span className="font-semibold">merchant</span> role. Roles cannot be chosen or changed here.
       </p>
 
       <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-        <Link href="/superadmin/admins" className={buttonClasses({ variant: 'secondary', className: 'sm:min-w-[8rem]' })}>
+        <Link href="/superadmin/merchants" className={buttonClasses({ variant: 'secondary', className: 'sm:min-w-[8rem]' })}>
           {isEdit ? 'Back to list' : 'Cancel'}
         </Link>
         <Button type="submit" disabled={submitting} className="sm:min-w-[8rem]">
           {submitting && <SpinnerIcon className="h-4 w-4" />}
-          {isEdit ? 'Save changes' : 'Create admin'}
+          {isEdit ? 'Save changes' : 'Create merchant'}
         </Button>
       </div>
     </form>

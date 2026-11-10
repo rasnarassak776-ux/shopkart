@@ -6,14 +6,14 @@ import { UserRole } from '@shopkart/common';
  */
 export const ROLE_HOME: Record<string, string> = {
   [UserRole.CUSTOMER]: '/customer/dashboard',
-  [UserRole.ADMIN]: '/admin/dashboard',
+  [UserRole.MERCHANT]: '/merchant/dashboard',
   [UserRole.SUPERADMIN]: '/superadmin/dashboard',
 };
 
 export const CUSTOMER_ROLES = [UserRole.CUSTOMER];
-export const ADMIN_ROLES = [UserRole.ADMIN, UserRole.SUPERADMIN];
+export const MERCHANT_ROLES = [UserRole.MERCHANT, UserRole.SUPERADMIN];
 export const SUPERADMIN_ROLES = [UserRole.SUPERADMIN];
-export const ALL_ROLES = [UserRole.CUSTOMER, UserRole.ADMIN, UserRole.SUPERADMIN];
+export const ALL_ROLES = [UserRole.CUSTOMER, UserRole.MERCHANT, UserRole.SUPERADMIN];
 
 /** Dashboard for a verified role. Unknown roles go to the storefront, which is never guarded (no redirect loops). */
 export function getRoleHomePath(role: string | null | undefined): string {
@@ -29,7 +29,7 @@ const matches = (path: string, prefix: string) => path === prefix || path.starts
 /** Route areas restricted to specific roles. Paths not listed are open to any signed-in role. */
 const ROLE_AREAS: { prefix: string; roles: readonly string[] }[] = [
   { prefix: '/superadmin', roles: SUPERADMIN_ROLES },
-  { prefix: '/admin', roles: ADMIN_ROLES },
+  { prefix: '/merchant', roles: MERCHANT_ROLES },
   { prefix: '/customer', roles: CUSTOMER_ROLES },
   { prefix: '/addresses', roles: CUSTOMER_ROLES },
 ];
@@ -63,8 +63,8 @@ export function getRoleLabel(role: string | null | undefined): string {
   switch (role) {
     case UserRole.SUPERADMIN:
       return 'Superadmin';
-    case UserRole.ADMIN:
-      return 'Admin';
+    case UserRole.MERCHANT:
+      return 'Merchant';
     case UserRole.CUSTOMER:
       return 'Customer';
     default:

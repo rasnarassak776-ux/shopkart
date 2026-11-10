@@ -7,8 +7,8 @@ import { useAuth } from '@/hooks/use-auth';
 
 const roleMatrix = [
   { role: 'Customer', access: 'Storefront, cart, checkout, own orders, profile and addresses.', provisioning: 'Public registration' },
-  { role: 'Admin', access: 'Store admin console: products, categories, orders, inventory.', provisioning: 'Created by a superadmin' },
-  { role: 'Superadmin', access: 'Everything an admin can do, plus admin account management and audit activity.', provisioning: 'One-time CLI bootstrap' },
+  { role: 'Merchant', access: 'Store merchant console: products, categories, orders, inventory.', provisioning: 'Created by a superadmin' },
+  { role: 'Superadmin', access: 'Everything an merchant can do, plus merchant account management and audit activity.', provisioning: 'One-time CLI bootstrap' },
 ];
 
 export function SuperadminSettings() {

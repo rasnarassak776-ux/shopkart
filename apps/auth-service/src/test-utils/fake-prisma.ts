@@ -5,11 +5,11 @@ type Row = Record<string, any>;
 
 /**
  * Minimal in-memory stand-in for the Prisma client, covering only the auth
- * queries used by AuthService, JwtStrategy, AdminsService, AuditLogService and
+ * queries used by AuthService, JwtStrategy, MerchantsService, AuditLogService and
  * the superadmin bootstrap. Honors `select` so tests catch accidental field leaks.
  */
 export function createFakePrisma() {
-  const roles: Row[] = ['customer', 'admin', 'superadmin'].map((name) => ({
+  const roles: Row[] = ['customer', 'merchant', 'superadmin'].map((name) => ({
     id: randomUUID(),
     name,
     createdAt: new Date(),

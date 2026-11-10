@@ -67,7 +67,7 @@ export function CategoryForm({ category, categories }: CategoryFormProps) {
     try {
       if (category) await updateAdminCategory(category.id, payload);
       else await createAdminCategory(payload);
-      router.push(`/admin/categories?saved=${isEdit ? 'updated' : 'created'}`);
+      router.push(`/merchant/categories?saved=${isEdit ? 'updated' : 'created'}`);
     } catch (err) {
       setServerError(err instanceof ApiError || err instanceof Error ? err.message : 'Unable to save the category.');
       setSubmitting(false);
@@ -224,7 +224,7 @@ export function CategoryForm({ category, categories }: CategoryFormProps) {
         </AdminPanel>
 
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end lg:flex-col-reverse lg:items-stretch">
-          <Link href="/admin/categories" className={buttonClasses({ variant: 'secondary', className: 'sm:min-w-[8rem]' })}>
+          <Link href="/merchant/categories" className={buttonClasses({ variant: 'secondary', className: 'sm:min-w-[8rem]' })}>
             Cancel
           </Link>
           <Button type="submit" disabled={submitting} className="sm:min-w-[8rem]">

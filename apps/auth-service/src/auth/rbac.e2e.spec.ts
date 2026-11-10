@@ -6,7 +6,7 @@ import { AddressInfo } from 'net';
 import { AuthModule } from './auth.module';
 import { TokenService } from './services/token.service';
 import { PasswordService } from './services/password.service';
-import { AdminsModule } from '../admins/admins.module';
+import { MerchantsModule } from '../merchants/merchants.module';
 import { AuditModule } from '../audit/audit.module';
 import { UsersModule } from '../users/users.module';
 import { PrismaModule } from '../prisma/prisma.module';
@@ -62,8 +62,8 @@ describe('Auth & RBAC (HTTP)', () => {
       });
     };
     addUser('customer', 'customer');
-    addUser('admin', 'admin');
-    addUser('inactive-admin', 'admin', false);
+    addUser('merchant', 'merchant');
+    addUser('inactive-merchant', 'merchant', false);
 
     const moduleRef = await Test.createTestingModule({
       imports: [
@@ -73,7 +73,7 @@ describe('Auth & RBAC (HTTP)', () => {
         AuthModule,
         UsersModule,
         AuditModule,
-        AdminsModule,
+        MerchantsModule,
       ],
     })
       .overrideProvider(PrismaService)
@@ -107,7 +107,7 @@ describe('Auth & RBAC (HTTP)', () => {
   describe('authentication', () => {
     it.each([
       ['customer@shopkart.test', 'customer'],
-      ['admin@shopkart.test', 'admin'],
+      ['merchant@shopkart.test', 'merchant'],
       ['superadmin@shopkart.test', 'superadmin'],
     ])('%s logs in through the shared endpoint with the verified role in the JWT', async (email, role) => {
       const res = await login(email);
@@ -125,7 +125,7 @@ describe('Auth & RBAC (HTTP)', () => {
     });
 
     it('rejects a wrong password and an unknown email with the same message', async () => {
-      const wrong = await login('admin@shopkart.test', 'Wr0ng!Password');
+      const wrong = await login('merchant@shopkart.test', 'Wr0ng!Password');
       const unknown = await login('nobody@shopkart.test');
       expect(wrong.status).toBe(401);
       expect(unknown.status).toBe(401);
@@ -133,7 +133,7 @@ describe('Auth & RBAC (HTTP)', () => {
     });
 
     it('rejects inactive accounts', async () => {
-      const res = await login('inactive-admin@shopkart.test');
+      const res = await login('inactive-merchant@shopkart.test');
       expect(res.status).toBe(401);
       expect(res.body.accessToken).toBeUndefined();
     });
@@ -148,7 +148,7 @@ describe('Auth & RBAC (HTTP)', () => {
       expect(stored.roleId).toBe(db.roleId('customer'));
     });
 
-    it.each([{ role: 'admin' }, { role: 'superadmin' }, { roleId: 'any' }])(
+    it.each([{ role: 'merchant' }, { role: 'superadmin' }, { roleId: 'any' }])(
       'rejects role injection during registration: %o',
       async (extra) => {
         const res = await request('POST', '/auth/register', {
@@ -161,28 +161,28 @@ describe('Auth & RBAC (HTTP)', () => {
   });
 
   describe('authorization', () => {
-    it('requires authentication for admin management', async () => {
-      expect((await request('GET', '/admins')).status).toBe(401);
+    it('requires authentication for merchant management', async () => {
+      expect((await request('GET', '/merchants')).status).toBe(401);
     });
 
-    it('customer cannot access admin or superadmin endpoints', async () => {
+    it('customer cannot access merchant or superadmin endpoints', async () => {
       const token = await tokenFor('customer@shopkart.test');
-      expect((await request('GET', '/auth/admin-only', { token })).status).toBe(403);
-      expect((await request('GET', '/admins', { token })).status).toBe(403);
+      expect((await request('GET', '/auth/merchant-only', { token })).status).toBe(403);
+      expect((await request('GET', '/merchants', { token })).status).toBe(403);
       expect((await request('GET', '/audit-logs', { token })).status).toBe(403);
     });
 
-    it('admin and superadmin can access regular admin endpoints', async () => {
-      for (const email of ['admin@shopkart.test', 'superadmin@shopkart.test']) {
-        expect((await request('GET', '/auth/admin-only', { token: await tokenFor(email) })).status).toBe(200);
+    it('merchant and superadmin can access regular merchant endpoints', async () => {
+      for (const email of ['merchant@shopkart.test', 'superadmin@shopkart.test']) {
+        expect((await request('GET', '/auth/merchant-only', { token: await tokenFor(email) })).status).toBe(200);
       }
     });
 
-    it('admin cannot access superadmin-only endpoints or create another admin', async () => {
-      const token = await tokenFor('admin@shopkart.test');
-      expect((await request('GET', '/admins', { token })).status).toBe(403);
+    it('merchant cannot access superadmin-only endpoints or create another merchant', async () => {
+      const token = await tokenFor('merchant@shopkart.test');
+      expect((await request('GET', '/merchants', { token })).status).toBe(403);
       expect((await request('GET', '/audit-logs', { token })).status).toBe(403);
-      const res = await request('POST', '/admins', {
+      const res = await request('POST', '/merchants', {
         token,
         body: { name: 'Shadow', email: 'shadow@shopkart.test', password: PASSWORD },
       });
@@ -196,18 +196,18 @@ describe('Auth & RBAC (HTTP)', () => {
         email: 'customer@shopkart.test',
         role: { name: 'superadmin' },
       });
-      expect((await request('GET', '/admins', { token: accessToken })).status).toBe(403);
+      expect((await request('GET', '/merchants', { token: accessToken })).status).toBe(403);
     });
 
     it('users cannot change their own role through the profile endpoint', async () => {
       const token = await tokenFor('customer@shopkart.test');
-      const res = await request('PATCH', '/users/me', { token, body: { role: 'admin' } });
+      const res = await request('PATCH', '/users/me', { token, body: { role: 'merchant' } });
       expect(res.status).toBe(400);
       expect(db.users.find((u) => u.id === ids.customer)!.roleId).toBe(db.roleId('customer'));
     });
   });
 
-  describe('admin management (superadmin)', () => {
+  describe('merchant management (superadmin)', () => {
     let superToken: string;
     let createdId: string;
 
@@ -215,104 +215,104 @@ describe('Auth & RBAC (HTTP)', () => {
       superToken = await tokenFor('superadmin@shopkart.test');
     });
 
-    it('superadmin can create an admin, which is audit-logged and can log in', async () => {
-      const res = await request('POST', '/admins', {
+    it('superadmin can create a merchant, which is audit-logged and can log in', async () => {
+      const res = await request('POST', '/merchants', {
         token: superToken,
-        body: { name: 'Store Admin', email: 'Store.Admin@Shopkart.test', password: PASSWORD },
+        body: { name: 'Store Merchant', email: 'Store.Merchant@Shopkart.test', password: PASSWORD },
       });
       expect(res.status).toBe(201);
-      expect(res.body.admin).toMatchObject({ email: 'store.admin@shopkart.test', role: 'admin', isActive: true });
-      expect(res.body.admin).not.toHaveProperty('passwordHash');
-      createdId = res.body.admin.id;
+      expect(res.body.merchant).toMatchObject({ email: 'store.merchant@shopkart.test', role: 'merchant', isActive: true });
+      expect(res.body.merchant).not.toHaveProperty('passwordHash');
+      createdId = res.body.merchant.id;
 
       expect(db.auditLogs).toContainEqual(
-        expect.objectContaining({ action: 'admin.created', actorId: ids.superadmin, targetUserId: createdId }),
+        expect.objectContaining({ action: 'merchant.created', actorId: ids.superadmin, targetUserId: createdId }),
       );
       expect(JSON.stringify(db.auditLogs)).not.toContain(PASSWORD);
-      expect((await login('store.admin@shopkart.test')).body.user.role).toBe('admin');
+      expect((await login('store.merchant@shopkart.test')).body.user.role).toBe('merchant');
     });
 
     it('rejects duplicate emails and privileged role fields on create', async () => {
-      const dup = await request('POST', '/admins', {
+      const dup = await request('POST', '/merchants', {
         token: superToken,
-        body: { name: 'Dup', email: 'admin@shopkart.test', password: PASSWORD },
+        body: { name: 'Dup', email: 'merchant@shopkart.test', password: PASSWORD },
       });
       expect(dup.status).toBe(409);
-      const injected = await request('POST', '/admins', {
+      const injected = await request('POST', '/merchants', {
         token: superToken,
         body: { name: 'Root2', email: 'root2@shopkart.test', password: PASSWORD, role: 'superadmin' },
       });
       expect(injected.status).toBe(400);
     });
 
-    it('enforces a strong password for new admins', async () => {
-      const res = await request('POST', '/admins', {
+    it('enforces a strong password for new merchants', async () => {
+      const res = await request('POST', '/merchants', {
         token: superToken,
         body: { name: 'Weak', email: 'weak@shopkart.test', password: 'Passw0rdOk' },
       });
       expect(res.status).toBe(400);
     });
 
-    it('superadmin can list admin accounts only', async () => {
-      const res = await request('GET', '/admins', { token: superToken });
+    it('superadmin can list merchant accounts only', async () => {
+      const res = await request('GET', '/merchants', { token: superToken });
       expect(res.status).toBe(200);
       const roles = new Set(res.body.data.map((a: any) => a.role));
-      expect([...roles]).toEqual(['admin']);
+      expect([...roles]).toEqual(['merchant']);
       expect(res.body.data.map((a: any) => a.email)).toEqual(
-        expect.arrayContaining(['admin@shopkart.test', 'store.admin@shopkart.test', 'inactive-admin@shopkart.test']),
+        expect.arrayContaining(['merchant@shopkart.test', 'store.merchant@shopkart.test', 'inactive-merchant@shopkart.test']),
       );
       expect(res.body.summary).toEqual({ total: 3, active: 2, inactive: 1 });
 
-      const filtered = await request('GET', '/admins?status=inactive', { token: superToken });
-      expect(filtered.body.data.map((a: any) => a.email)).toEqual(['inactive-admin@shopkart.test']);
+      const filtered = await request('GET', '/merchants?status=inactive', { token: superToken });
+      expect(filtered.body.data.map((a: any) => a.email)).toEqual(['inactive-merchant@shopkart.test']);
     });
 
-    it('superadmin can view and update admin details but not their role', async () => {
-      expect((await request('GET', `/admins/${createdId}`, { token: superToken })).body.admin.name).toBe('Store Admin');
-      const updated = await request('PATCH', `/admins/${createdId}`, { token: superToken, body: { name: 'Lead Admin' } });
+    it('superadmin can view and update merchant details but not their role', async () => {
+      expect((await request('GET', `/merchants/${createdId}`, { token: superToken })).body.merchant.name).toBe('Store Merchant');
+      const updated = await request('PATCH', `/merchants/${createdId}`, { token: superToken, body: { name: 'Lead Merchant' } });
       expect(updated.status).toBe(200);
-      expect(updated.body.admin.name).toBe('Lead Admin');
-      const roleChange = await request('PATCH', `/admins/${createdId}`, { token: superToken, body: { role: 'superadmin' } });
+      expect(updated.body.merchant.name).toBe('Lead Merchant');
+      const roleChange = await request('PATCH', `/merchants/${createdId}`, { token: superToken, body: { role: 'superadmin' } });
       expect(roleChange.status).toBe(400);
     });
 
-    it('superadmin can deactivate and reactivate an admin; deactivation is immediate', async () => {
-      const adminToken = await tokenFor('store.admin@shopkart.test');
-      expect((await request('GET', '/auth/admin-only', { token: adminToken })).status).toBe(200);
+    it('superadmin can deactivate and reactivate a merchant; deactivation is immediate', async () => {
+      const merchantToken = await tokenFor('store.merchant@shopkart.test');
+      expect((await request('GET', '/auth/merchant-only', { token: merchantToken })).status).toBe(200);
 
-      const off = await request('PATCH', `/admins/${createdId}/status`, { token: superToken, body: { isActive: false } });
+      const off = await request('PATCH', `/merchants/${createdId}/status`, { token: superToken, body: { isActive: false } });
       expect(off.status).toBe(200);
-      expect(off.body.admin.isActive).toBe(false);
-      expect((await request('GET', '/auth/admin-only', { token: adminToken })).status).toBe(401);
-      expect((await login('store.admin@shopkart.test')).status).toBe(401);
+      expect(off.body.merchant.isActive).toBe(false);
+      expect((await request('GET', '/auth/merchant-only', { token: merchantToken })).status).toBe(401);
+      expect((await login('store.merchant@shopkart.test')).status).toBe(401);
 
-      const on = await request('PATCH', `/admins/${createdId}/status`, { token: superToken, body: { isActive: true } });
-      expect(on.body.admin.isActive).toBe(true);
-      expect((await login('store.admin@shopkart.test')).status).toBe(200);
+      const on = await request('PATCH', `/merchants/${createdId}/status`, { token: superToken, body: { isActive: true } });
+      expect(on.body.merchant.isActive).toBe(true);
+      expect((await login('store.merchant@shopkart.test')).status).toBe(200);
 
       const actions = db.auditLogs.filter((l) => l.targetUserId === createdId).map((l) => l.action);
-      expect(actions).toEqual(['admin.created', 'admin.updated', 'admin.deactivated', 'admin.activated']);
+      expect(actions).toEqual(['merchant.created', 'merchant.updated', 'merchant.deactivated', 'merchant.activated']);
     });
 
-    it('cannot target customers or superadmins through admin management', async () => {
+    it('cannot target customers or superadmins through merchant management', async () => {
       for (const id of [ids.customer, ids.superadmin]) {
-        expect((await request('PATCH', `/admins/${id}/status`, { token: superToken, body: { isActive: false } })).status).toBe(404);
-        expect((await request('PATCH', `/admins/${id}`, { token: superToken, body: { name: 'x' } })).status).toBe(404);
+        expect((await request('PATCH', `/merchants/${id}/status`, { token: superToken, body: { isActive: false } })).status).toBe(404);
+        expect((await request('PATCH', `/merchants/${id}`, { token: superToken, body: { name: 'x' } })).status).toBe(404);
       }
       expect(db.users.find((u) => u.id === ids.superadmin)!.isActive).toBe(true);
     });
 
     it('validates ids and status payloads', async () => {
-      expect((await request('GET', '/admins/not-a-uuid', { token: superToken })).status).toBe(400);
+      expect((await request('GET', '/merchants/not-a-uuid', { token: superToken })).status).toBe(400);
       expect(
-        (await request('PATCH', `/admins/${createdId}/status`, { token: superToken, body: { isActive: 'no' } })).status,
+        (await request('PATCH', `/merchants/${createdId}/status`, { token: superToken, body: { isActive: 'no' } })).status,
       ).toBe(400);
     });
 
     it('exposes the audit trail to superadmins', async () => {
       const res = await request('GET', '/audit-logs?limit=5', { token: superToken });
       expect(res.status).toBe(200);
-      expect(res.body.data[0]).toMatchObject({ action: 'admin.activated' });
+      expect(res.body.data[0]).toMatchObject({ action: 'merchant.activated' });
       expect(res.body.data[0].actor).toMatchObject({ email: 'superadmin@shopkart.test' });
     });
   });

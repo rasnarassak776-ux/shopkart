@@ -5,10 +5,11 @@ import { ProductsModule } from '../products/products.module';
 import { StorageModule } from '../storage/storage.module';
 import { AdminController } from './admin.controller';
 import { AdminStatsService } from './admin-stats.service';
+import { AdminInventoryService } from './admin-inventory.service';
 
 @Module({
   imports: [AuthModule, CategoriesModule, ProductsModule, StorageModule],
   controllers: [AdminController],
-  providers: [AdminStatsService],
+  providers: [AdminStatsService, AdminInventoryService],
 })
 export class AdminModule {}

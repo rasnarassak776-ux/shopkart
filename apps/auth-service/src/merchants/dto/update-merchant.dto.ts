@@ -1,8 +1,8 @@
 import { IsBoolean, IsEmail, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
 import { Transform } from 'class-transformer';
 
-/** Editable admin details. Role and password are intentionally not updatable here. */
-export class UpdateAdminDto {
+/** Editable merchant details. Role and password are intentionally not updatable here. */
+export class UpdateMerchantDto {
   @IsOptional()
   @IsString({ message: 'Name must be a string.' })
   @MinLength(1, { message: 'Name must not be empty.' })
@@ -24,7 +24,7 @@ export class UpdateAdminDto {
   phone?: string;
 }
 
-export class UpdateAdminStatusDto {
+export class UpdateMerchantStatusDto {
   @IsBoolean({ message: 'isActive must be a boolean.' })
   isActive: boolean;
 }

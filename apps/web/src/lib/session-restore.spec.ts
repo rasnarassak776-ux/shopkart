@@ -19,12 +19,12 @@ describe('restoreVerifiedSession (page refresh)', () => {
   it('falls back to the refresh cookie when the cached token is expired', async () => {
     const fetchUser = jest.fn(async (token: string) => {
       if (token === 'expired') throw new Error('401');
-      return { id: 'u2', role: 'admin' };
+      return { id: 'u2', role: 'merchant' };
     });
 
     await expect(
       restoreVerifiedSession<User>({ storedToken: 'expired', fetchUser, refresh: async () => 'fresh' }),
-    ).resolves.toEqual({ token: 'fresh', user: { id: 'u2', role: 'admin' } });
+    ).resolves.toEqual({ token: 'fresh', user: { id: 'u2', role: 'merchant' } });
   });
 
   it('uses the refresh cookie when nothing is cached', async () => {

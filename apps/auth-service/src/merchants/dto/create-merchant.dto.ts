@@ -4,11 +4,11 @@ import { Transform } from 'class-transformer';
 const trim = ({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value);
 
 /**
- * Payload for creating an admin. There is deliberately no role field: the
- * service always assigns `admin`, and the global ValidationPipe
+ * Payload for creating a merchant. There is deliberately no role field: the
+ * service always assigns `merchant`, and the global ValidationPipe
  * (forbidNonWhitelisted) rejects any extra `role`/`roleId` property.
  */
-export class CreateAdminDto {
+export class CreateMerchantDto {
   @IsNotEmpty({ message: 'Name must not be empty.' })
   @IsString({ message: 'Name must be a string.' })
   @MaxLength(120, { message: 'Name must be at most 120 characters.' })
@@ -25,7 +25,7 @@ export class CreateAdminDto {
   @IsString({ message: 'Password must be a string.' })
   @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{12,128}$/, {
     message:
-      'Admin passwords must be 12-128 characters and include upper-case, lower-case, a number and a symbol.',
+      'Merchant passwords must be 12-128 characters and include upper-case, lower-case, a number and a symbol.',
   })
   password: string;
 

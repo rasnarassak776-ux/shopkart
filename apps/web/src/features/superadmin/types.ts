@@ -1,4 +1,4 @@
-export interface AdminAccount {
+export interface MerchantAccount {
   id: string;
   name: string;
   email: string;
@@ -9,29 +9,29 @@ export interface AdminAccount {
   updatedAt: string;
 }
 
-export type AdminStatusFilter = 'all' | 'active' | 'inactive';
+export type MerchantStatusFilter = 'all' | 'active' | 'inactive';
 
-export interface AdminAccountsQuery {
+export interface MerchantAccountsQuery {
   search?: string;
-  status?: AdminStatusFilter;
+  status?: MerchantStatusFilter;
   page?: number;
   limit?: number;
 }
 
-export interface AdminAccountsResponse {
-  data: AdminAccount[];
+export interface MerchantAccountsResponse {
+  data: MerchantAccount[];
   meta: { page: number; limit: number; total: number; totalPages: number };
   summary: { total: number; active: number; inactive: number };
 }
 
-export interface CreateAdminInput {
+export interface CreateMerchantInput {
   name: string;
   email: string;
   password: string;
   phone?: string;
 }
 
-export interface UpdateAdminInput {
+export interface UpdateMerchantInput {
   name?: string;
   email?: string;
   phone?: string;

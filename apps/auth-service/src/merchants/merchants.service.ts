@@ -13,11 +13,11 @@ import { PasswordService } from '../auth/services/password.service';
 import { TokenService } from '../auth/services/token.service';
 import { AuditLogService, AuditContext } from '../audit/audit-log.service';
 import { AuditAction } from '../audit/audit-actions';
-import { CreateAdminDto } from './dto/create-admin.dto';
-import { UpdateAdminDto, UpdateAdminStatusDto } from './dto/update-admin.dto';
-import { QueryAdminsDto } from './dto/query-admins.dto';
+import { CreateMerchantDto } from './dto/create-merchant.dto';
+import { UpdateMerchantDto, UpdateMerchantStatusDto } from './dto/update-merchant.dto';
+import { QueryMerchantsDto } from './dto/query-merchants.dto';
 
-const ADMIN_SELECT = {
+const MERCHANT_SELECT = {
   id: true,
   name: true,
   email: true,
@@ -28,9 +28,9 @@ const ADMIN_SELECT = {
   role: { select: { name: true } },
 } satisfies Prisma.UserSelect;
 
-type AdminRecord = Prisma.UserGetPayload<{ select: typeof ADMIN_SELECT }>;
+type MerchantRecord = Prisma.UserGetPayload<{ select: typeof MERCHANT_SELECT }>;
 
-export interface AdminAccount {
+export interface MerchantAccount {
   id: string;
   name: string;
   email: string;
@@ -41,14 +41,14 @@ export interface AdminAccount {
   updatedAt: Date;
 }
 
-const toAdmin = ({ role, ...rest }: AdminRecord): AdminAccount => ({ ...rest, role: role.name });
+const toMerchant = ({ role, ...rest }: MerchantRecord): MerchantAccount => ({ ...rest, role: role.name });
 
-/** Every query in this service is scoped to the `admin` role, so superadmins and customers can never be targeted. */
-const ADMIN_SCOPE = { role: { name: UserRole.ADMIN } } satisfies Prisma.UserWhereInput;
+/** Every query in this service is scoped to the `merchant` role, so superadmins and customers can never be targeted. */
+const MERCHANT_SCOPE = { role: { name: UserRole.MERCHANT } } satisfies Prisma.UserWhereInput;
 
 @Injectable()
-export class AdminsService {
-  private readonly logger = new Logger(AdminsService.name);
+export class MerchantsService {
+  private readonly logger = new Logger(MerchantsService.name);
 
   constructor(
     private readonly prisma: PrismaService,
@@ -57,39 +57,39 @@ export class AdminsService {
     private readonly auditLogService: AuditLogService,
   ) {}
 
-  async create(dto: CreateAdminDto, context: AuditContext): Promise<AdminAccount> {
+  async create(dto: CreateMerchantDto, context: AuditContext): Promise<MerchantAccount> {
     const email = dto.email.trim().toLowerCase();
     await this.assertEmailAvailable(email);
 
-    const adminRole = await this.prisma.role.findUnique({ where: { name: UserRole.ADMIN } });
-    if (!adminRole) {
-      this.logger.error('System configuration error: "admin" role not found in auth.roles.');
-      throw new InternalServerErrorException('Admin role is not configured.');
+    const merchantRole = await this.prisma.role.findUnique({ where: { name: UserRole.MERCHANT } });
+    if (!merchantRole) {
+      this.logger.error('System configuration error: "merchant" role not found in auth.roles.');
+      throw new InternalServerErrorException('Merchant role is not configured.');
     }
 
     const passwordHash = await this.passwordService.hash(dto.password);
 
     try {
-      const admin = await this.prisma.$transaction(async (tx) => {
+      const merchant = await this.prisma.$transaction(async (tx) => {
         const created = await tx.user.create({
           data: {
             name: dto.name.trim(),
             email,
             passwordHash,
             phone: dto.phone?.trim() || null,
-            roleId: adminRole.id,
+            roleId: merchantRole.id,
             isActive: true,
           },
-          select: ADMIN_SELECT,
+          select: MERCHANT_SELECT,
         });
         await this.auditLogService.record(
           context,
-          { action: AuditAction.ADMIN_CREATED, targetUserId: created.id, metadata: { email } },
+          { action: AuditAction.MERCHANT_CREATED, targetUserId: created.id, metadata: { email } },
           tx,
         );
         return created;
       });
-      return toAdmin(admin);
+      return toMerchant(merchant);
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
         throw new ConflictException('An account with this email address already exists.');
@@ -98,11 +98,11 @@ export class AdminsService {
     }
   }
 
-  async findAll(query: QueryAdminsDto) {
+  async findAll(query: QueryMerchantsDto) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const where: Prisma.UserWhereInput = {
-      ...ADMIN_SCOPE,
+      ...MERCHANT_SCOPE,
       ...(query.status === 'active' && { isActive: true }),
       ...(query.status === 'inactive' && { isActive: false }),
       ...(query.search && {
@@ -116,29 +116,29 @@ export class AdminsService {
     const [items, filteredTotal, total, active] = await this.prisma.$transaction([
       this.prisma.user.findMany({
         where,
-        select: ADMIN_SELECT,
+        select: MERCHANT_SELECT,
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * limit,
         take: limit,
       }),
       this.prisma.user.count({ where }),
-      this.prisma.user.count({ where: ADMIN_SCOPE }),
-      this.prisma.user.count({ where: { ...ADMIN_SCOPE, isActive: true } }),
+      this.prisma.user.count({ where: MERCHANT_SCOPE }),
+      this.prisma.user.count({ where: { ...MERCHANT_SCOPE, isActive: true } }),
     ]);
 
     return {
-      data: items.map(toAdmin),
+      data: items.map(toMerchant),
       meta: { page, limit, total: filteredTotal, totalPages: Math.max(1, Math.ceil(filteredTotal / limit)) },
       summary: { total, active, inactive: total - active },
     };
   }
 
-  async findOne(id: string): Promise<AdminAccount> {
-    return toAdmin(await this.getAdminOrThrow(id));
+  async findOne(id: string): Promise<MerchantAccount> {
+    return toMerchant(await this.getMerchantOrThrow(id));
   }
 
-  async update(id: string, dto: UpdateAdminDto, context: AuditContext): Promise<AdminAccount> {
-    const existing = await this.getAdminOrThrow(id);
+  async update(id: string, dto: UpdateMerchantDto, context: AuditContext): Promise<MerchantAccount> {
+    const existing = await this.getMerchantOrThrow(id);
     const data: Prisma.UserUpdateInput = {};
 
     if (dto.name !== undefined && dto.name !== existing.name) data.name = dto.name;
@@ -155,15 +155,15 @@ export class AdminsService {
 
     try {
       const updated = await this.prisma.$transaction(async (tx) => {
-        const result = await tx.user.update({ where: { id }, data, select: ADMIN_SELECT });
+        const result = await tx.user.update({ where: { id }, data, select: MERCHANT_SELECT });
         await this.auditLogService.record(
           context,
-          { action: AuditAction.ADMIN_UPDATED, targetUserId: id, metadata: { changedFields } },
+          { action: AuditAction.MERCHANT_UPDATED, targetUserId: id, metadata: { changedFields } },
           tx,
         );
         return result;
       });
-      return toAdmin(updated);
+      return toMerchant(updated);
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
         throw new ConflictException('An account with this email address already exists.');
@@ -172,22 +172,22 @@ export class AdminsService {
     }
   }
 
-  async updateStatus(id: string, dto: UpdateAdminStatusDto, context: AuditContext): Promise<AdminAccount> {
-    const existing = await this.getAdminOrThrow(id);
+  async updateStatus(id: string, dto: UpdateMerchantStatusDto, context: AuditContext): Promise<MerchantAccount> {
+    const existing = await this.getMerchantOrThrow(id);
     if (existing.isActive === dto.isActive) {
-      return toAdmin(existing);
+      return toMerchant(existing);
     }
 
     const updated = await this.prisma.$transaction(async (tx) => {
       const result = await tx.user.update({
         where: { id },
         data: { isActive: dto.isActive },
-        select: ADMIN_SELECT,
+        select: MERCHANT_SELECT,
       });
       await this.auditLogService.record(
         context,
         {
-          action: dto.isActive ? AuditAction.ADMIN_ACTIVATED : AuditAction.ADMIN_DEACTIVATED,
+          action: dto.isActive ? AuditAction.MERCHANT_ACTIVATED : AuditAction.MERCHANT_DEACTIVATED,
           targetUserId: id,
           metadata: { email: existing.email },
         },
@@ -196,20 +196,20 @@ export class AdminsService {
       return result;
     });
 
-    // A deactivated admin loses every session immediately (refresh tokens and live access tokens).
+    // A deactivated merchant loses every session immediately (refresh tokens and live access tokens).
     if (!dto.isActive) {
       await this.tokenService.revokeAllUserSessions(id);
     }
 
-    return toAdmin(updated);
+    return toMerchant(updated);
   }
 
-  private async getAdminOrThrow(id: string): Promise<AdminRecord> {
-    const admin = await this.prisma.user.findFirst({ where: { id, ...ADMIN_SCOPE }, select: ADMIN_SELECT });
-    if (!admin) {
-      throw new NotFoundException('Admin account not found.');
+  private async getMerchantOrThrow(id: string): Promise<MerchantRecord> {
+    const merchant = await this.prisma.user.findFirst({ where: { id, ...MERCHANT_SCOPE }, select: MERCHANT_SELECT });
+    if (!merchant) {
+      throw new NotFoundException('Merchant account not found.');
     }
-    return admin;
+    return merchant;
   }
 
   private async assertEmailAvailable(email: string) {

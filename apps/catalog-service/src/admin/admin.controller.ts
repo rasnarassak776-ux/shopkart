@@ -17,6 +17,7 @@ import { UserRole } from '@shopkart/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { CategoriesService } from '../categories/categories.service';
 import { CreateCategoryDto } from '../categories/dto/create-category.dto';
 import {
@@ -24,7 +25,9 @@ import {
   UpdateCategoryStatusDto,
 } from '../categories/dto/update-category.dto';
 import { AdminStatsService } from './admin-stats.service';
-import { ProductsService } from '../products/products.service';
+import { AdminInventoryService } from './admin-inventory.service';
+import { UpdateInventoryDto } from './dto/update-inventory.dto';
+import { ProductsService, ConsoleActor } from '../products/products.service';
 import { CreateProductDto } from '../products/dto/create-product.dto';
 import {
   UpdateProductDto,
@@ -36,26 +39,36 @@ import {
   MAX_IMAGES_PER_REQUEST,
 } from '../storage/file-validation';
 
+interface RequestUser {
+  id: string;
+  role: string;
+}
+
+const toActor = (user: RequestUser): ConsoleActor => ({ id: user.id, role: user.role });
+
 /**
  * Catalog administration API. Every route requires a valid access token
- * (JwtAuthGuard) issued by the auth service AND the `admin` or `superadmin` role
- * (RolesGuard), enforced at class level so no handler can be accidentally left open.
+ * (JwtAuthGuard) issued by the auth service AND the `merchant` or `superadmin`
+ * role (RolesGuard), enforced at class level so no handler can be accidentally
+ * left open. Merchants are additionally scoped to their own products by the
+ * service layer; superadmins retain platform-wide access.
  */
 @Controller('catalog/admin')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
+@Roles(UserRole.MERCHANT, UserRole.SUPERADMIN)
 export class AdminController {
   constructor(
     private readonly categoriesService: CategoriesService,
     private readonly statsService: AdminStatsService,
+    private readonly inventoryService: AdminInventoryService,
     private readonly productsService: ProductsService,
   ) {}
 
   // ---------------- Stats ----------------
 
   @Get('stats')
-  async getStats() {
-    return this.statsService.getCatalogStats();
+  async getStats(@CurrentUser() user: RequestUser) {
+    return this.statsService.getCatalogStats(toActor(user));
   }
 
   // ---------------- Categories ----------------
@@ -94,39 +107,53 @@ export class AdminController {
   // ---------------- Products ----------------
 
   @Get('products')
-  async findAllProducts(@Query() query: QueryAdminProductsDto) {
-    return this.productsService.findAllForAdmin(query);
+  async findAllProducts(
+    @Query() query: QueryAdminProductsDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.productsService.findAllForAdmin(query, toActor(user));
   }
 
   @Get('products/:id')
-  async findProduct(@Param('id', ParseUUIDPipe) id: string) {
-    return this.productsService.findByIdForAdmin(id);
+  async findProduct(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.productsService.findByIdForAdmin(id, toActor(user));
   }
 
   @Post('products')
-  async createProduct(@Body() dto: CreateProductDto) {
-    return this.productsService.create(dto);
+  async createProduct(
+    @Body() dto: CreateProductDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.productsService.create(dto, toActor(user));
   }
 
   @Patch('products/:id')
   async updateProduct(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateProductDto,
+    @CurrentUser() user: RequestUser,
   ) {
-    return this.productsService.update(id, dto);
+    return this.productsService.update(id, dto, toActor(user));
   }
 
   @Patch('products/:id/status')
   async updateProductStatus(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateProductStatusDto,
+    @CurrentUser() user: RequestUser,
   ) {
-    return this.productsService.setStatus(id, dto.isActive);
+    return this.productsService.setStatus(id, dto.isActive, toActor(user));
   }
 
   @Delete('products/:id')
-  async deleteProduct(@Param('id', ParseUUIDPipe) id: string) {
-    return this.productsService.delete(id);
+  async deleteProduct(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.productsService.delete(id, toActor(user));
   }
 
   // ---------------- Product Images ----------------
@@ -145,23 +172,46 @@ export class AdminController {
       mimetype?: string;
       size?: number;
     }>,
+    @CurrentUser() user: RequestUser,
   ) {
-    return this.productsService.uploadImages(id, files || []);
+    return this.productsService.uploadImages(id, files || [], toActor(user));
   }
 
   @Delete('products/:id/images/:imageId')
   async deleteProductImage(
     @Param('id', ParseUUIDPipe) id: string,
     @Param('imageId', ParseUUIDPipe) imageId: string,
+    @CurrentUser() user: RequestUser,
   ) {
-    return this.productsService.deleteImage(id, imageId);
+    return this.productsService.deleteImage(id, imageId, toActor(user));
   }
 
   @Patch('products/:id/images/:imageId/primary')
   async setPrimaryProductImage(
     @Param('id', ParseUUIDPipe) id: string,
     @Param('imageId', ParseUUIDPipe) imageId: string,
+    @CurrentUser() user: RequestUser,
   ) {
-    return this.productsService.setPrimaryImage(id, imageId);
+    return this.productsService.setPrimaryImage(id, imageId, toActor(user));
+  }
+
+  // ---------------- Inventory ----------------
+
+  @Get('inventory')
+  async listInventory(@CurrentUser() user: RequestUser) {
+    return this.inventoryService.list(toActor(user));
+  }
+
+  @Patch('inventory/:productId')
+  async updateInventory(
+    @Param('productId', ParseUUIDPipe) productId: string,
+    @Body() dto: UpdateInventoryDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.inventoryService.updateAvailableQuantity(
+      productId,
+      dto.availableQuantity,
+      toActor(user),
+    );
   }
 }

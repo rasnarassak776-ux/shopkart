@@ -1,5 +1,5 @@
 import {
-  ADMIN_ROLES,
+  MERCHANT_ROLES,
   ALL_ROLES,
   CUSTOMER_ROLES,
   SUPERADMIN_ROLES,
@@ -12,7 +12,7 @@ import {
 describe('role-based redirects after login', () => {
   it.each([
     ['customer', '/customer/dashboard'],
-    ['admin', '/admin/dashboard'],
+    ['merchant', '/merchant/dashboard'],
     ['superadmin', '/superadmin/dashboard'],
   ])('%s is sent to %s', (role, home) => {
     expect(resolvePostLoginRedirect(role, null)).toBe(home);
@@ -27,48 +27,48 @@ describe('role-based redirects after login', () => {
 
   it('honours a returnUrl only when the role may access it', () => {
     expect(resolvePostLoginRedirect('customer', '/checkout')).toBe('/checkout');
-    expect(resolvePostLoginRedirect('customer', '/admin/products')).toBe('/customer/dashboard');
-    expect(resolvePostLoginRedirect('customer', '/superadmin/admins')).toBe('/customer/dashboard');
-    expect(resolvePostLoginRedirect('admin', '/admin/products')).toBe('/admin/products');
-    expect(resolvePostLoginRedirect('admin', '/superadmin/admins')).toBe('/admin/dashboard');
-    expect(resolvePostLoginRedirect('admin', '/customer/orders')).toBe('/admin/dashboard');
-    expect(resolvePostLoginRedirect('superadmin', '/superadmin/admins/create')).toBe('/superadmin/admins/create');
-    expect(resolvePostLoginRedirect('superadmin', '/admin/categories')).toBe('/admin/categories');
+    expect(resolvePostLoginRedirect('customer', '/merchant/products')).toBe('/customer/dashboard');
+    expect(resolvePostLoginRedirect('customer', '/superadmin/merchants')).toBe('/customer/dashboard');
+    expect(resolvePostLoginRedirect('merchant', '/merchant/products')).toBe('/merchant/products');
+    expect(resolvePostLoginRedirect('merchant', '/superadmin/merchants')).toBe('/merchant/dashboard');
+    expect(resolvePostLoginRedirect('merchant', '/customer/orders')).toBe('/merchant/dashboard');
+    expect(resolvePostLoginRedirect('superadmin', '/superadmin/merchants/create')).toBe('/superadmin/merchants/create');
+    expect(resolvePostLoginRedirect('superadmin', '/merchant/categories')).toBe('/merchant/categories');
   });
 
   it('never redirects off-site or back into auth pages', () => {
-    for (const url of ['https://evil.test', '//evil.test', '/\\evil.test', '/login', '/register?x=1', 'admin']) {
+    for (const url of ['https://evil.test', '//evil.test', '/\\evil.test', '/login', '/register?x=1', 'merchant']) {
       expect(resolvePostLoginRedirect('customer', url)).toBe('/customer/dashboard');
     }
   });
 });
 
 describe('route protection rules', () => {
-  it('customers cannot access admin or superadmin areas', () => {
-    expect(canRoleAccessPath('customer', '/admin')).toBe(false);
-    expect(canRoleAccessPath('customer', '/admin/products/1/edit')).toBe(false);
+  it('customers cannot access merchant or superadmin areas', () => {
+    expect(canRoleAccessPath('customer', '/merchant')).toBe(false);
+    expect(canRoleAccessPath('customer', '/merchant/products/1/edit')).toBe(false);
     expect(canRoleAccessPath('customer', '/superadmin/dashboard')).toBe(false);
     expect(canRoleAccessPath('customer', '/customer/cart')).toBe(true);
   });
 
-  it('admins cannot access superadmin-only areas; superadmins inherit admin areas', () => {
-    expect(canRoleAccessPath('admin', '/superadmin')).toBe(false);
-    expect(canRoleAccessPath('admin', '/admin/inventory')).toBe(true);
-    expect(canRoleAccessPath('superadmin', '/admin/orders')).toBe(true);
+  it('merchants cannot access superadmin-only areas; superadmins inherit merchant areas', () => {
+    expect(canRoleAccessPath('merchant', '/superadmin')).toBe(false);
+    expect(canRoleAccessPath('merchant', '/merchant/inventory')).toBe(true);
+    expect(canRoleAccessPath('superadmin', '/merchant/orders')).toBe(true);
     expect(canRoleAccessPath('superadmin', '/superadmin/settings')).toBe(true);
   });
 
   it('does not confuse similarly named paths', () => {
     expect(canRoleAccessPath('customer', '/administrator')).toBe(true);
-    expect(canRoleAccessPath('admin', '/superadmins-info')).toBe(true);
+    expect(canRoleAccessPath('merchant', '/superadmins-info')).toBe(true);
   });
 
   it('role lists match the agreed hierarchy', () => {
     expect(CUSTOMER_ROLES).toEqual(['customer']);
-    expect(ADMIN_ROLES).toEqual(['admin', 'superadmin']);
+    expect(MERCHANT_ROLES).toEqual(['merchant', 'superadmin']);
     expect(SUPERADMIN_ROLES).toEqual(['superadmin']);
-    expect(ALL_ROLES).toEqual(['customer', 'admin', 'superadmin']);
-    expect(hasRole('admin', SUPERADMIN_ROLES)).toBe(false);
+    expect(ALL_ROLES).toEqual(['customer', 'merchant', 'superadmin']);
+    expect(hasRole('merchant', SUPERADMIN_ROLES)).toBe(false);
     expect(hasRole(undefined, ALL_ROLES)).toBe(false);
   });
 

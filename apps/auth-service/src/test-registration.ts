@@ -199,7 +199,7 @@ async function runTests() {
         name: 'Hacker',
         email: `hacker_${Date.now()}@example.com`,
         password: testPassword,
-        role: 'admin',
+        role: 'merchant',
         roleId: '9031a6bb-8ba8-47de-a805-ebfdd0e72d71',
       }),
     });

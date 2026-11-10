@@ -62,7 +62,7 @@ async function runPhase4Tests() {
 
     // 2. Prepare test data in DB
     const customerRole = await prisma.role.findUnique({ where: { name: 'customer' } });
-    const adminRole = await prisma.role.findUnique({ where: { name: 'admin' } });
+    const adminRole = await prisma.role.findUnique({ where: { name: 'merchant' } });
 
     if (!customerRole || !adminRole) {
       throw new Error('Customer or Admin roles missing in database. Please run seed script.');
@@ -156,7 +156,7 @@ async function runPhase4Tests() {
     const test2Pass =
       res2.status === 200 &&
       data2.success === true &&
-      data2.user.role === 'admin' &&
+      data2.user.role === 'merchant' &&
       data2.accessToken;
 
     results.push({
@@ -466,14 +466,14 @@ async function runPhase4Tests() {
     // ----------------------------------------------------
     console.log('Test 15: Role-Based Access Control (@Roles guard)...');
     // Customer attempts admin-only endpoint -> Expect 403 Forbidden
-    const customerAdminRes = await fetch(`${BASE_URL}/auth/admin-only`, {
+    const customerAdminRes = await fetch(`${BASE_URL}/auth/merchant-only`, {
       method: 'GET',
       headers: { Authorization: `Bearer ${freshData.accessToken}` },
     });
     const customerForbidden = customerAdminRes.status === 403;
 
     // Admin attempts admin-only endpoint -> Expect 200 OK
-    const adminAdminRes = await fetch(`${BASE_URL}/auth/admin-only`, {
+    const adminAdminRes = await fetch(`${BASE_URL}/auth/merchant-only`, {
       method: 'GET',
       headers: { Authorization: `Bearer ${adminAccessToken}` },
     });

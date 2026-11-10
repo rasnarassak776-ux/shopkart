@@ -2,7 +2,7 @@ import React from 'react';
 import { AlertCircleIcon, Button, type IconProps } from '@/components/ui';
 import { cn } from '@/lib/cn';
 
-/** Rounded card surface used throughout the admin console. */
+/** Rounded card surface used throughout the merchant console. */
 export function AdminPanel({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return <div className={cn('rounded-xl border border-line bg-surface shadow-card', className)} {...props} />;
 }
