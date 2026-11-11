@@ -4,6 +4,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import {
   OrderStatus,
@@ -16,6 +17,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AuthClient, AddressSnapshot } from '../clients/auth.client';
 import { CartClient } from '../clients/cart.client';
 import { CatalogClient } from '../clients/catalog.client';
+import { NotificationClient } from '../clients/notification.client';
 import { InventoryService } from '../inventory/inventory.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { QueryOrdersDto } from './dto/query-orders.dto';
@@ -36,6 +38,7 @@ export class OrdersService {
     private readonly cartClient: CartClient,
     private readonly catalogClient: CatalogClient,
     private readonly inventoryService: InventoryService,
+    @Optional() private readonly notificationClient?: NotificationClient,
   ) {}
 
   async createOrder(
@@ -226,6 +229,14 @@ export class OrdersService {
     });
 
     this.logger.log(`Order ${createdOrder.id} successfully placed for user ${userId}`);
+
+    // Asynchronously dispatch notifications for customer and merchants
+    if (this.notificationClient && completeOrder) {
+      this.dispatchOrderNotifications(completeOrder, addressSnapshot).catch((err) => {
+        this.logger.warn(`Failed to dispatch order placed notifications: ${err.message}`);
+      });
+    }
+
     return this.formatOrderResponse(completeOrder!);
   }
 
@@ -626,6 +637,18 @@ export class OrdersService {
       },
     );
 
+    if (this.notificationClient && updatedOrder) {
+      this.dispatchStatusUpdateNotifications(
+        updatedOrder,
+        targetItems,
+        order.status,
+        targetStatus,
+        dto.notes,
+      ).catch((err) => {
+        this.logger.warn(`Failed to dispatch status update notifications: ${err.message}`);
+      });
+    }
+
     if (!isSuperadmin) {
       const filtered = this.filterOrderForMerchant(updatedOrder, actor.id, merchantProductIds);
       return this.formatOrderResponse(filtered || updatedOrder, true);
@@ -675,6 +698,130 @@ export class OrdersService {
       where: { userId, status: 'ACTIVE' },
       data: { status: 'CONVERTED' },
     });
+  }
+
+  private async dispatchOrderNotifications(order: any, addressSnapshot: any): Promise<void> {
+    if (!this.notificationClient) return;
+
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { id: order.userId },
+        select: { email: true, name: true },
+      });
+      const customerEmail = user?.email || 'customer@shopkart.com';
+      const customerName = addressSnapshot?.fullName || user?.name || 'Customer';
+
+      await this.notificationClient.dispatchOrderPlaced({
+        orderId: order.id,
+        orderNumber: order.id.slice(0, 8).toUpperCase(),
+        userId: order.userId,
+        recipientEmail: customerEmail,
+        recipientName: customerName,
+        totalAmount: Number(order.totalAmount),
+        items: (order.items || []).map((it: any) => ({
+          productId: it.productId,
+          productName: it.productNameSnapshot,
+          quantity: it.quantity,
+          unitPrice: Number(it.unitPriceSnapshot),
+          totalPrice: Number(it.unitPriceSnapshot) * it.quantity,
+        })),
+        shippingAddress: {
+          fullName: addressSnapshot?.fullName || 'Valued Customer',
+          addressLine1: addressSnapshot?.addressLine1 || '',
+          city: addressSnapshot?.city || '',
+          state: addressSnapshot?.state || '',
+          postalCode: addressSnapshot?.postalCode || '',
+          phone: addressSnapshot?.phone || undefined,
+        },
+      });
+
+      const merchantMap = new Map<string, any[]>();
+      for (const item of order.items || []) {
+        if (item.merchantId) {
+          const list = merchantMap.get(item.merchantId) || [];
+          list.push(item);
+          merchantMap.set(item.merchantId, list);
+        }
+      }
+
+      for (const [merchantId, items] of merchantMap.entries()) {
+        const merchant = await this.prisma.user.findUnique({
+          where: { id: merchantId },
+          select: { email: true, name: true },
+        });
+        const subtotal = items.reduce(
+          (sum, it) => sum + Number(it.unitPriceSnapshot) * it.quantity,
+          0,
+        );
+
+        await this.notificationClient.dispatchMerchantOrderReceived({
+          orderId: order.id,
+          orderNumber: order.id.slice(0, 8).toUpperCase(),
+          merchantId,
+          merchantEmail: merchant?.email || 'merchant@shopkart.com',
+          merchantName: merchant?.name || 'Merchant Partner',
+          items: items.map((it) => ({
+            productId: it.productId,
+            productName: it.productNameSnapshot,
+            quantity: it.quantity,
+            unitPrice: Number(it.unitPriceSnapshot),
+            totalPrice: Number(it.unitPriceSnapshot) * it.quantity,
+          })),
+          totalAmount: subtotal,
+        });
+      }
+    } catch (err: any) {
+      this.logger.warn(`Could not complete dispatchOrderNotifications: ${err.message}`);
+    }
+  }
+
+  private async dispatchStatusUpdateNotifications(
+    order: any,
+    targetItems: any[],
+    previousStatus: OrderStatus,
+    targetStatus: OrderStatus,
+    notes?: string,
+  ): Promise<void> {
+    if (!this.notificationClient) return;
+
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { id: order.userId },
+        select: { email: true, name: true },
+      });
+      const customerEmail = user?.email || 'customer@shopkart.com';
+      const customerName = user?.name || 'Customer';
+
+      await this.notificationClient.dispatchOrderStatusUpdated({
+        orderId: order.id,
+        orderNumber: order.id.slice(0, 8).toUpperCase(),
+        userId: order.userId,
+        recipientEmail: customerEmail,
+        recipientName: customerName,
+        previousStatus,
+        newStatus: targetStatus,
+        notes,
+      });
+
+      if (targetStatus === OrderStatus.SHIPPED) {
+        for (const item of targetItems) {
+          await this.notificationClient.dispatchOrderItemShipped({
+            orderId: order.id,
+            orderNumber: order.id.slice(0, 8).toUpperCase(),
+            userId: order.userId,
+            recipientEmail: customerEmail,
+            recipientName: customerName,
+            itemId: item.id,
+            productName: item.productNameSnapshot,
+            quantity: item.quantity,
+            carrier: 'Shopkart Express',
+            trackingNumber: `SK-${order.id.slice(0, 6).toUpperCase()}-${item.id.slice(0, 4).toUpperCase()}`,
+          });
+        }
+      }
+    } catch (err: any) {
+      this.logger.warn(`Could not complete dispatchStatusUpdateNotifications: ${err.message}`);
+    }
   }
 
   private formatOrderResponse(order: any, merchantView = false): OrderResponse {

@@ -37,3 +37,122 @@ export interface INotificationDeliveryContract {
     payload: PasswordResetNotificationPayload,
   ): Promise<NotificationDeliveryResult>;
 }
+
+export enum NotificationType {
+  CUSTOMER_WELCOME = 'CUSTOMER_WELCOME',
+  PASSWORD_RESET = 'PASSWORD_RESET',
+  ORDER_PLACED = 'ORDER_PLACED',
+  ORDER_STATUS_UPDATED = 'ORDER_STATUS_UPDATED',
+  MERCHANT_ORDER_RECEIVED = 'MERCHANT_ORDER_RECEIVED',
+  ORDER_ITEM_SHIPPED = 'ORDER_ITEM_SHIPPED',
+  MERCHANT_WELCOME = 'MERCHANT_WELCOME',
+  MERCHANT_APPROVED = 'MERCHANT_APPROVED',
+}
+
+export enum NotificationChannel {
+  EMAIL = 'EMAIL',
+  IN_APP = 'IN_APP',
+}
+
+export interface CustomerWelcomeNotificationPayload {
+  userId: string;
+  recipientEmail: string;
+  recipientName: string;
+}
+
+export interface OrderPlacedNotificationPayload {
+  orderId: string;
+  orderNumber: string;
+  userId: string;
+  recipientEmail: string;
+  recipientName: string;
+  totalAmount: number;
+  items: Array<{
+    productId: string;
+    productName: string;
+    quantity: number;
+    unitPrice: number;
+    totalPrice: number;
+    imageUrl?: string;
+  }>;
+  shippingAddress: {
+    fullName: string;
+    addressLine1: string;
+    city: string;
+    state: string;
+    postalCode: string;
+    phone?: string;
+  };
+}
+
+export interface OrderStatusUpdatedNotificationPayload {
+  orderId: string;
+  orderNumber: string;
+  userId: string;
+  recipientEmail: string;
+  recipientName?: string;
+  previousStatus: string;
+  newStatus: string;
+  notes?: string;
+}
+
+export interface MerchantOrderReceivedNotificationPayload {
+  orderId: string;
+  orderNumber: string;
+  merchantId: string;
+  merchantEmail: string;
+  merchantName: string;
+  items: Array<{
+    productId: string;
+    productName: string;
+    quantity: number;
+    unitPrice: number;
+    totalPrice: number;
+  }>;
+  totalAmount: number;
+}
+
+export interface OrderItemShippedNotificationPayload {
+  orderId: string;
+  orderNumber: string;
+  userId: string;
+  recipientEmail: string;
+  recipientName?: string;
+  itemId: string;
+  productName: string;
+  quantity: number;
+  trackingNumber?: string;
+  carrier?: string;
+}
+
+export interface MerchantWelcomeNotificationPayload {
+  userId: string;
+  merchantId: string;
+  recipientEmail: string;
+  businessName: string;
+  contactName: string;
+}
+
+export interface MerchantApprovedNotificationPayload {
+  userId: string;
+  merchantId: string;
+  recipientEmail: string;
+  businessName: string;
+  contactName: string;
+}
+
+export interface NotificationItem {
+  id: string;
+  userId: string;
+  type: string;
+  title: string | null;
+  message: string;
+  channel: string;
+  recipient: string | null;
+  status: 'PENDING' | 'SENT' | 'FAILED';
+  readAt: string | null;
+  sentAt: string | null;
+  error: string | null;
+  metadata?: Record<string, any> | null;
+  createdAt: string;
+}

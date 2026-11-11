@@ -8,6 +8,7 @@ import { ChevronDownIcon, ExternalLinkIcon, LogoutIcon, MenuIcon, SettingsIcon, 
 import { AdminBreadcrumbs } from './admin-breadcrumbs';
 import { getAdminBreadcrumbs } from './admin-nav';
 import { UserRole } from '@shopkart/common';
+import { NotificationBell } from '@/features/notifications';
 
 interface AdminHeaderProps {
   onOpenNavigation: () => void;
@@ -130,6 +131,7 @@ export function AdminHeader({ onOpenNavigation, onLogout, isLoggingOut }: AdminH
             <ExternalLinkIcon className="h-4 w-4" />
             Storefront
           </Link>
+          <NotificationBell />
           <AdminUserMenu onLogout={onLogout} isLoggingOut={isLoggingOut} />
         </div>
       </div>

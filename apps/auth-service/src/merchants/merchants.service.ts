@@ -5,9 +5,10 @@ import {
   InternalServerErrorException,
   Logger,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { UserRole } from '@shopkart/common';
+import { UserRole, NotificationType } from '@shopkart/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PasswordService } from '../auth/services/password.service';
 import { TokenService } from '../auth/services/token.service';
@@ -16,6 +17,7 @@ import { AuditAction } from '../audit/audit-actions';
 import { CreateMerchantDto } from './dto/create-merchant.dto';
 import { UpdateMerchantDto, UpdateMerchantStatusDto } from './dto/update-merchant.dto';
 import { QueryMerchantsDto } from './dto/query-merchants.dto';
+import { NotificationClientService } from '../notifications/notification-client.service';
 
 const MERCHANT_SELECT = {
   id: true,
@@ -55,6 +57,7 @@ export class MerchantsService {
     private readonly passwordService: PasswordService,
     private readonly tokenService: TokenService,
     private readonly auditLogService: AuditLogService,
+    @Optional() private readonly notificationClient?: NotificationClientService,
   ) {}
 
   async create(dto: CreateMerchantDto, context: AuditContext): Promise<MerchantAccount> {
@@ -89,6 +92,21 @@ export class MerchantsService {
         );
         return created;
       });
+
+      if (this.notificationClient) {
+        this.notificationClient
+          .dispatchEvent(NotificationType.MERCHANT_WELCOME, {
+            userId: merchant.id,
+            merchantId: merchant.id,
+            recipientEmail: email,
+            businessName: dto.name.trim(),
+            contactName: dto.name.trim(),
+          })
+          .catch((err) =>
+            this.logger.warn(`Could not dispatch merchant welcome: ${err.message}`),
+          );
+      }
+
       return toMerchant(merchant);
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
@@ -199,6 +217,21 @@ export class MerchantsService {
     // A deactivated merchant loses every session immediately (refresh tokens and live access tokens).
     if (!dto.isActive) {
       await this.tokenService.revokeAllUserSessions(id);
+    } else if (this.notificationClient) {
+      // Activated / Approved merchant event
+      this.notificationClient
+        .dispatchEvent(NotificationType.MERCHANT_APPROVED, {
+          userId: id,
+          merchantId: id,
+          recipientEmail: existing.email,
+          businessName: existing.name,
+          contactName: existing.name,
+        })
+        .catch((err) =>
+          this.logger.warn(
+            `Could not dispatch merchant approved notification: ${err.message}`,
+          ),
+        );
     }
 
     return toMerchant(updated);

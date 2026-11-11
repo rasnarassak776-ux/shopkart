@@ -12,6 +12,7 @@ import { Logo } from './logo';
 import { MobileNav } from './mobile-nav';
 import { SearchBar } from './search-bar';
 import { useCart } from '@/features/cart';
+import { NotificationBell } from '@/features/notifications';
 
 const utilityLinks = [
   { label: 'Help centre', href: PLACEHOLDER_HREF },
@@ -71,6 +72,7 @@ export function SiteHeader() {
             <Logo className="mr-1" />
             <SearchBar className="mx-2 hidden max-w-2xl flex-1 md:block lg:mx-6" />
             <div className="ml-auto flex items-center gap-0.5 sm:gap-1">
+              <NotificationBell />
               <AccountMenu />
               <button type="button" aria-label="Wishlist" className={cn(iconButton, 'hidden sm:inline-flex')}>
                 <HeartIcon className="h-[22px] w-[22px]" />
