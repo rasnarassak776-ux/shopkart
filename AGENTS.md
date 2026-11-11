@@ -2,9 +2,9 @@
 
 ## Verification commands
 - Typecheck a service: `npx tsc --noEmit -p apps/<service>/tsconfig.json`; web: `cd apps/web && npx tsc --noEmit`
-- Tests (Jest, `*.spec.ts`): `npm test -w auth-service`, `-w web`, `-w catalog-service`, `-w cart-service`, `-w order-service`
+- Tests (Jest, `*.spec.ts`): `npm test -w auth-service`, `-w web`, `-w catalog-service`, `-w cart-service`, `-w order-service`, `-w notification-service`
 - After editing `packages/common/src`, rebuild it (`npm run build -w @shopkart/common`); NestJS services consume `dist/`, while Jest maps to `src/`.
-- Dev servers usually run in watch mode (web :3000, auth :3010, catalog :3020, cart :3030, order :3040). Avoid `next build` / `nest build` while they run, because both overwrite the live output dirs.
+- Dev servers usually run in watch mode (web :3000, auth :3010, catalog :3020, cart :3030, order :3040, notification :3050). Avoid `next build` / `nest build` while they run, because both overwrite the live output dirs.
 
 ## Database
 - `database/prisma/migrations/20261107104427_add_category_image_url/` exists locally with no `migration.sql`, which blocks `prisma migrate dev/deploy` (P3015). Do not run `migrate dev` against the shared dev DB, since drift there can trigger a reset. Apply new idempotent SQL with `npx prisma db execute --file … --schema prisma/schema.prisma`.

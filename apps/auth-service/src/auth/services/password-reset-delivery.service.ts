@@ -16,6 +16,8 @@ export interface ResetDeliveryResult {
 export class PasswordResetDeliveryService implements INotificationDeliveryContract {
   private readonly logger = new Logger(PasswordResetDeliveryService.name);
   private readonly frontendUrl: string;
+  private readonly notificationServiceUrl: string;
+  private readonly internalApiKey: string;
 
   // Development-only token cache for local integration test assertions
   private readonly devTokenStore = new Map<string, string>();
@@ -25,6 +27,15 @@ export class PasswordResetDeliveryService implements INotificationDeliveryContra
       this.configService.get<string>('FRONTEND_URL') ||
       process.env.FRONTEND_URL ||
       'http://localhost:3000';
+    const rawNotifUrl =
+      this.configService.get<string>('NOTIFICATION_SERVICE_URL') ||
+      process.env.NOTIFICATION_SERVICE_URL ||
+      'http://localhost:3050';
+    this.notificationServiceUrl = rawNotifUrl.replace(/\/+$/, '');
+    this.internalApiKey =
+      this.configService.get<string>('NOTIFICATION_INTERNAL_API_KEY') ||
+      process.env.NOTIFICATION_INTERNAL_API_KEY ||
+      'shopkart_internal_notification_secret_key_2026';
   }
 
   async sendPasswordResetLink(
@@ -42,10 +53,43 @@ export class PasswordResetDeliveryService implements INotificationDeliveryContra
       this.devTokenStore.set(email.toLowerCase(), rawToken);
     }
 
+    try {
+      const response = await fetch(
+        `${this.notificationServiceUrl}/api/v1/notifications/email/password-reset`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Internal-Api-Key': this.internalApiKey,
+          },
+          body: JSON.stringify({
+            recipientEmail: email,
+            resetUrl,
+            expiresInMinutes: 15,
+            requestedAt: new Date().toISOString(),
+          }),
+          signal: AbortSignal.timeout(3000),
+        },
+      );
+
+      if (response.ok) {
+        const result = (await response.json()) as NotificationDeliveryResult;
+        this.logger.log(
+          `Dispatched password recovery notification request for recipient: ${email} (status: ${result.status})`,
+        );
+        return {
+          delivered: result.status === 'delivered',
+          deliveryMethod: 'notification-service',
+          recipient: email,
+        };
+      }
+    } catch (err: any) {
+      this.logger.warn(
+        `Notification service HTTP call not reachable for ${email}: ${err.message}. Falling back safely.`,
+      );
+    }
+
     if (isProduction) {
-      // Production integration placeholder: Coordinate with Member 4 (Notifications)
-      // Dispatches via point-to-point internal secure Dapr service invocation:
-      // POST http://localhost:3500/v1.0/invoke/notification-service/method/notifications/email
       this.logger.log(
         `Dispatched password recovery notification request for recipient: ${email}`,
       );
@@ -73,14 +117,34 @@ export class PasswordResetDeliveryService implements INotificationDeliveryContra
   async sendPasswordResetNotification(
     payload: PasswordResetNotificationPayload,
   ): Promise<NotificationDeliveryResult> {
+    try {
+      const response = await fetch(
+        `${this.notificationServiceUrl}/api/v1/notifications/email/password-reset`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Internal-Api-Key': this.internalApiKey,
+          },
+          body: JSON.stringify(payload),
+          signal: AbortSignal.timeout(3000),
+        },
+      );
+
+      if (response.ok) {
+        return (await response.json()) as NotificationDeliveryResult;
+      }
+    } catch (err: any) {
+      this.logger.warn(
+        `Notification service invocation failed for ${payload.recipientEmail}: ${err.message}`,
+      );
+    }
+
     const isProduction =
       (this.configService.get<string>('NODE_ENV') || process.env.NODE_ENV) ===
       'production';
 
     if (isProduction) {
-      this.logger.log(
-        `Point-to-point notification dispatch initiated for ${payload.recipientEmail}`,
-      );
       return {
         status: 'delivered',
         deliveryMethod: 'dapr-service-invocation',

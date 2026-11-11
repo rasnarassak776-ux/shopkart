@@ -5,6 +5,7 @@ import {
   BadRequestException,
   InternalServerErrorException,
   Logger,
+  Optional,
 } from '@nestjs/common';
 import * as crypto from 'crypto';
 import { RegisterDto } from './dto/register.dto';
@@ -17,6 +18,8 @@ import { PasswordService } from './services/password.service';
 import { TokenService, TokenPair } from './services/token.service';
 import { RedisService } from '../redis/redis.service';
 import { PasswordResetDeliveryService } from './services/password-reset-delivery.service';
+import { NotificationClientService } from '../notifications/notification-client.service';
+import { NotificationType } from '@shopkart/common';
 
 export interface RegistrationResponse {
   success: boolean;
@@ -64,6 +67,7 @@ export class AuthService {
     private readonly tokenService: TokenService,
     private readonly redisService: RedisService,
     private readonly deliveryService: PasswordResetDeliveryService,
+    @Optional() private readonly notificationClient?: NotificationClientService,
   ) {}
 
   async register(registerDto: RegisterDto): Promise<RegistrationResponse> {
@@ -156,6 +160,17 @@ export class AuthService {
       this.logger.log(
         `Customer successfully registered: id=${user.id}, email=${user.email}`,
       );
+
+      // Asynchronously dispatch Customer Welcome notification
+      if (this.notificationClient) {
+        this.notificationClient.dispatchEvent(NotificationType.CUSTOMER_WELCOME, {
+          userId: user.id,
+          recipientEmail: user.email,
+          recipientName: user.name,
+        }).catch((err) => {
+          this.logger.warn(`Could not dispatch welcome notification for user ${user.id}: ${err.message}`);
+        });
+      }
 
       // 5. Return safe response (no passwordHash or sensitive database data)
       return {
