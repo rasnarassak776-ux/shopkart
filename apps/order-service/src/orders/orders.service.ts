@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   Logger,
@@ -20,6 +21,7 @@ import { CatalogClient } from '../clients/catalog.client';
 import { NotificationClient } from '../clients/notification.client';
 import { InventoryService } from '../inventory/inventory.service';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { CancelOrderDto } from './dto/cancel-order.dto';
 import { QueryOrdersDto } from './dto/query-orders.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import {
@@ -308,6 +310,135 @@ export class OrdersService {
     }
 
     return this.formatOrderResponse(order);
+  }
+
+  // ---------------- Customer Order Cancellation ----------------
+
+  /**
+   * Order-level statuses from which a customer may still cancel.
+   * SHIPPED, DELIVERED and CANCELLED are terminal for cancellation.
+   */
+  private static readonly CUSTOMER_CANCELLABLE_STATUSES: OrderStatus[] = [
+    OrderStatus.PENDING,
+    OrderStatus.CONFIRMED,
+    OrderStatus.PROCESSING,
+  ];
+
+  async cancelOrder(
+    userId: string,
+    orderId: string,
+    dto: CancelOrderDto,
+  ): Promise<OrderResponse> {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        items: true,
+        payments: true,
+        statusHistory: { orderBy: { changedAt: 'asc' } },
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    if (order.userId !== userId) {
+      throw new ForbiddenException('You do not have access to this order');
+    }
+
+    if (order.status === OrderStatus.CANCELLED) {
+      throw new ConflictException('Order is already cancelled');
+    }
+
+    if (!OrdersService.CUSTOMER_CANCELLABLE_STATUSES.includes(order.status)) {
+      throw new BadRequestException(
+        `Order cannot be cancelled in status ${order.status}. Only orders in ${OrdersService.CUSTOMER_CANCELLABLE_STATUSES.join(', ')} can be cancelled.`,
+      );
+    }
+
+    const comment = dto.comment?.trim() || null;
+    const reasonLabel = dto.reason.replace(/_/g, ' ').toLowerCase();
+    const historyNotes = `Cancelled by customer. Reason: ${reasonLabel}.${comment ? ` Comment: ${comment}` : ''}`;
+
+    const cancelledOrder = await this.prisma.$transaction(
+      async (tx) => {
+        // Concurrency guard: only transition if the order is still owned by the
+        // customer and still in a cancellable status. Exactly-once semantics.
+        const updated = await tx.order.updateMany({
+          where: {
+            id: orderId,
+            userId,
+            status: { in: OrdersService.CUSTOMER_CANCELLABLE_STATUSES },
+          },
+          data: {
+            status: OrderStatus.CANCELLED,
+            cancellationReason: dto.reason,
+            cancellationComment: comment,
+            cancelledAt: new Date(),
+          },
+        });
+
+        if (updated.count !== 1) {
+          throw new ConflictException(
+            'Order status changed concurrently; cancellation could not be completed',
+          );
+        }
+
+        await tx.orderItem.updateMany({
+          where: { orderId },
+          data: { status: OrderStatus.CANCELLED },
+        });
+
+        await tx.orderStatusHistory.create({
+          data: {
+            orderId,
+            status: OrderStatus.CANCELLED,
+            notes: historyNotes.substring(0, 255),
+          },
+        });
+
+        // Release all reserved inventory exactly once (reservations are flipped
+        // to RELEASED inside this transaction).
+        await this.inventoryService.releaseStockInTx(tx, orderId);
+
+        // Paid orders have no automated refund gateway; record a pending refund
+        // state that must be confirmed manually before it is marked refunded.
+        // Unpaid orders (COD pending/collected, pending, failed) are untouched.
+        await tx.payment.updateMany({
+          where: { orderId, paymentStatus: PaymentStatus.PAID },
+          data: { paymentStatus: PaymentStatus.REFUND_PENDING },
+        });
+
+        return tx.order.findUnique({
+          where: { id: orderId },
+          include: {
+            items: true,
+            payments: true,
+            statusHistory: { orderBy: { changedAt: 'asc' } },
+          },
+        });
+      },
+      {
+        isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
+        timeout: 10000,
+      },
+    );
+
+    this.logger.log(`Order ${orderId} cancelled by customer ${userId} (reason: ${dto.reason})`);
+
+    if (this.notificationClient && cancelledOrder) {
+      this.dispatchStatusUpdateNotifications(
+        cancelledOrder,
+        cancelledOrder.items || [],
+        order.status,
+        OrderStatus.CANCELLED,
+        historyNotes,
+      ).catch((err) => {
+        this.logger.warn(`Failed to dispatch cancellation notification: ${err.message}`);
+      });
+    }
+
+    return this.formatOrderResponse(cancelledOrder!);
   }
 
   // ---------------- Merchant / Superadmin Order Management ----------------
@@ -853,6 +984,9 @@ export class OrdersService {
       id: order.id,
       userId: order.userId,
       status: order.status,
+      cancellationReason: order.cancellationReason ?? null,
+      cancellationComment: order.cancellationComment ?? null,
+      cancelledAt: order.cancelledAt ? new Date(order.cancelledAt).toISOString() : null,
       totalAmount: new Prisma.Decimal(order.totalAmount || 0).toFixed(2),
       currency: 'INR',
       itemCount: totalItemCount,

@@ -168,7 +168,16 @@ export function OrderList() {
 
           <div className="space-y-4">
             {orders.map((order) => (
-              <OrderCard key={order.id} order={order} />
+              <OrderCard
+                key={order.id}
+                order={order}
+                allowCancellation
+                onCancelled={(updated) =>
+                  setOrders((prev) =>
+                    prev.map((o) => (o.id === updated.id ? updated : o)),
+                  )
+                }
+              />
             ))}
           </div>
 

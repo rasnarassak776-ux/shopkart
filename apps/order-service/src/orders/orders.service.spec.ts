@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
@@ -11,7 +12,9 @@ import { AuthClient } from '../clients/auth.client';
 import { CartClient } from '../clients/cart.client';
 import { CatalogClient } from '../clients/catalog.client';
 import { InventoryService } from '../inventory/inventory.service';
+import { NotificationClient } from '../clients/notification.client';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { CancellationReason } from './dto/cancel-order.dto';
 
 describe('OrdersService', () => {
   let service: OrdersService;
@@ -28,6 +31,7 @@ describe('OrdersService', () => {
       count: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
+      updateMany: jest.fn(),
     },
     orderItem: {
       create: jest.fn(),
@@ -45,6 +49,12 @@ describe('OrdersService', () => {
     cart: {
       findFirst: jest.fn(),
       updateMany: jest.fn(),
+    },
+    user: {
+      findUnique: jest.fn().mockResolvedValue({
+        email: 'customer@example.com',
+        name: 'Jane Doe',
+      }),
     },
     $transaction: jest.fn((cb) => (typeof cb === 'function' ? cb(mockPrismaService) : Promise.all(cb))),
   };
@@ -64,7 +74,15 @@ describe('OrdersService', () => {
 
   const mockInventoryService = {
     reserveStockInTx: jest.fn(),
+    releaseStockInTx: jest.fn(),
     releaseStockForItemsInTx: jest.fn(),
+  };
+
+  const mockNotificationClient = {
+    dispatchOrderPlaced: jest.fn(),
+    dispatchOrderStatusUpdated: jest.fn(),
+    dispatchMerchantOrderReceived: jest.fn(),
+    dispatchOrderItemShipped: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -76,6 +94,7 @@ describe('OrdersService', () => {
         { provide: CartClient, useValue: mockCartClient },
         { provide: CatalogClient, useValue: mockCatalogClient },
         { provide: InventoryService, useValue: mockInventoryService },
+        { provide: NotificationClient, useValue: mockNotificationClient },
       ],
     }).compile();
 
@@ -703,6 +722,205 @@ describe('OrdersService', () => {
           },
         });
       });
+    });
+  });
+
+  describe('cancelOrder', () => {
+    const userId = 'customer-123';
+    const orderId = 'order-cancel-1';
+    const dto = {
+      reason: CancellationReason.CHANGED_MIND,
+      comment: 'No longer needed',
+    };
+
+    const buildOrder = (overrides: Record<string, any> = {}) => ({
+      id: orderId,
+      userId,
+      status: OrderStatus.PENDING,
+      totalAmount: new Prisma.Decimal('199.99'),
+      addressSnapshot: { fullName: 'Jane Doe' },
+      items: [
+        {
+          id: 'item-1',
+          productId: 'prod-1',
+          merchantId: 'merchant-1',
+          productNameSnapshot: 'Widget',
+          quantity: 1,
+          unitPriceSnapshot: new Prisma.Decimal('199.99'),
+          status: OrderStatus.PENDING,
+        },
+      ],
+      payments: [
+        {
+          paymentMethod: PaymentMethod.COD,
+          paymentStatus: PaymentStatus.COD_PENDING,
+          amount: new Prisma.Decimal('199.99'),
+        },
+      ],
+      statusHistory: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      ...overrides,
+    });
+
+    const buildCancelledOrder = () =>
+      buildOrder({
+        status: OrderStatus.CANCELLED,
+        cancellationReason: 'CHANGED_MIND',
+        cancellationComment: 'No longer needed',
+        cancelledAt: new Date(),
+        items: [{ ...buildOrder().items[0], status: OrderStatus.CANCELLED }],
+      });
+
+    it('should successfully cancel an eligible order, release stock, and notify the customer', async () => {
+      mockPrismaService.order.findUnique
+        .mockResolvedValueOnce(buildOrder())
+        .mockResolvedValue(buildCancelledOrder());
+      mockPrismaService.order.updateMany.mockResolvedValue({ count: 1 });
+      mockPrismaService.orderItem.updateMany.mockResolvedValue({ count: 1 });
+      mockPrismaService.orderStatusHistory.create.mockResolvedValue({});
+      mockPrismaService.payment.updateMany.mockResolvedValue({ count: 0 });
+      mockInventoryService.releaseStockInTx.mockResolvedValue(undefined);
+
+      const result = await service.cancelOrder(userId, orderId, dto);
+
+      expect(result.status).toBe('CANCELLED');
+      expect(result.cancellationReason).toBe('CHANGED_MIND');
+      expect(result.cancellationComment).toBe('No longer needed');
+      expect(result.cancelledAt).toBeTruthy();
+
+      // Exactly-once guarded transition
+      expect(mockPrismaService.order.updateMany).toHaveBeenCalledWith({
+        where: {
+          id: orderId,
+          userId,
+          status: {
+            in: [OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.PROCESSING],
+          },
+        },
+        data: expect.objectContaining({
+          status: OrderStatus.CANCELLED,
+          cancellationReason: 'CHANGED_MIND',
+          cancellationComment: 'No longer needed',
+        }),
+      });
+
+      expect(mockPrismaService.orderItem.updateMany).toHaveBeenCalledWith({
+        where: { orderId },
+        data: { status: OrderStatus.CANCELLED },
+      });
+      expect(mockInventoryService.releaseStockInTx).toHaveBeenCalledTimes(1);
+      expect(mockPrismaService.orderStatusHistory.create).toHaveBeenCalled();
+
+      // COD pending payment must not be touched
+      expect(mockPrismaService.payment.updateMany).toHaveBeenCalledWith({
+        where: { orderId, paymentStatus: PaymentStatus.PAID },
+        data: { paymentStatus: PaymentStatus.REFUND_PENDING },
+      });
+
+      // Customer notification dispatched with reason and cancelled status
+      // (dispatched asynchronously after the transaction commits)
+      await new Promise((resolve) => setImmediate(resolve));
+      expect(mockNotificationClient.dispatchOrderStatusUpdated).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderId,
+          newStatus: OrderStatus.CANCELLED,
+          notes: expect.stringContaining('changed mind'),
+        }),
+      );
+    });
+
+    it('should mark paid payments as REFUND_PENDING on cancellation', async () => {
+      mockPrismaService.order.findUnique
+        .mockResolvedValueOnce(
+          buildOrder({
+            payments: [
+              {
+                paymentMethod: PaymentMethod.ONLINE,
+                paymentStatus: PaymentStatus.PAID,
+                amount: new Prisma.Decimal('199.99'),
+              },
+            ],
+          }),
+        )
+        .mockResolvedValue(buildCancelledOrder());
+      mockPrismaService.order.updateMany.mockResolvedValue({ count: 1 });
+      mockPrismaService.orderItem.updateMany.mockResolvedValue({ count: 1 });
+      mockPrismaService.orderStatusHistory.create.mockResolvedValue({});
+      mockPrismaService.payment.updateMany.mockResolvedValue({ count: 1 });
+      mockInventoryService.releaseStockInTx.mockResolvedValue(undefined);
+
+      await service.cancelOrder(userId, orderId, dto);
+
+      expect(mockPrismaService.payment.updateMany).toHaveBeenCalledWith({
+        where: { orderId, paymentStatus: PaymentStatus.PAID },
+        data: { paymentStatus: PaymentStatus.REFUND_PENDING },
+      });
+    });
+
+    it('should throw NotFoundException when the order does not exist', async () => {
+      mockPrismaService.order.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.cancelOrder(userId, orderId, dto),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw ForbiddenException when cancelling another customer order', async () => {
+      mockPrismaService.order.findUnique.mockResolvedValue(
+        buildOrder({ userId: 'other-customer' }),
+      );
+
+      await expect(
+        service.cancelOrder(userId, orderId, dto),
+      ).rejects.toThrow(ForbiddenException);
+      expect(mockPrismaService.order.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('should throw ConflictException for an already-cancelled order', async () => {
+      mockPrismaService.order.findUnique.mockResolvedValue(
+        buildOrder({ status: OrderStatus.CANCELLED, cancelledAt: new Date() }),
+      );
+
+      await expect(
+        service.cancelOrder(userId, orderId, dto),
+      ).rejects.toThrow(ConflictException);
+      expect(mockInventoryService.releaseStockInTx).not.toHaveBeenCalled();
+    });
+
+    it.each([OrderStatus.SHIPPED, OrderStatus.DELIVERED])(
+      'should reject cancellation for %s orders',
+      async (status) => {
+        mockPrismaService.order.findUnique.mockResolvedValue(buildOrder({ status }));
+
+        await expect(
+          service.cancelOrder(userId, orderId, dto),
+        ).rejects.toThrow(BadRequestException);
+        expect(mockPrismaService.order.updateMany).not.toHaveBeenCalled();
+      },
+    );
+
+    it('should throw ConflictException when a concurrent request wins the transition', async () => {
+      mockPrismaService.order.findUnique
+        .mockResolvedValueOnce(buildOrder())
+        .mockResolvedValue(buildOrder({ status: OrderStatus.SHIPPED }));
+      mockPrismaService.order.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(
+        service.cancelOrder(userId, orderId, dto),
+      ).rejects.toThrow(ConflictException);
+      expect(mockInventoryService.releaseStockInTx).not.toHaveBeenCalled();
+    });
+
+    it('should not dispatch a duplicate notification when cancellation is rejected', async () => {
+      mockPrismaService.order.findUnique.mockResolvedValue(
+        buildOrder({ status: OrderStatus.CANCELLED }),
+      );
+
+      await expect(
+        service.cancelOrder(userId, orderId, dto),
+      ).rejects.toThrow(ConflictException);
+      expect(mockNotificationClient.dispatchOrderStatusUpdated).not.toHaveBeenCalled();
     });
   });
 });

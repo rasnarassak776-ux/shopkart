@@ -22,6 +22,9 @@ export interface OrderResponse {
   id: string;
   userId: string;
   status: string;
+  cancellationReason?: string | null;
+  cancellationComment?: string | null;
+  cancelledAt?: string | null;
   totalAmount: string;
   currency?: string;
   itemCount?: number;

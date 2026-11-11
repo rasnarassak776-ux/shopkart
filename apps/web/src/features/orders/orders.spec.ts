@@ -7,6 +7,7 @@ import {
   formatShortDate,
 } from './order-utils';
 import {
+  cancelOrder,
   getCustomerOrders,
   getOrderById,
   getMerchantOrders,
@@ -286,6 +287,46 @@ describe('Member 3 – Phase 6: Customer Order Management Unit Tests', () => {
         }),
       );
       expect(res.status).toBe('CONFIRMED');
+    });
+
+    it('should submit PATCH to /orders/:id/cancel with reason and comment', async () => {
+      const cancelledOrder: Order = {
+        ...mockOrder,
+        status: 'CANCELLED',
+        cancellationReason: 'CHANGED_MIND',
+        cancellationComment: 'No longer needed',
+        cancelledAt: '2026-11-11T05:00:00.000Z',
+      };
+      (apiClientModule.apiClient as jest.Mock).mockResolvedValue(cancelledOrder);
+
+      const res = await cancelOrder(mockOrder.id, {
+        reason: 'CHANGED_MIND',
+        comment: 'No longer needed',
+      });
+
+      expect(apiClientModule.apiClient).toHaveBeenCalledWith(
+        expect.stringContaining(`/api/v1/orders/${mockOrder.id}/cancel`),
+        expect.objectContaining({
+          method: 'PATCH',
+          body: JSON.stringify({
+            reason: 'CHANGED_MIND',
+            comment: 'No longer needed',
+          }),
+        }),
+      );
+      expect(res.status).toBe('CANCELLED');
+      expect(res.cancellationReason).toBe('CHANGED_MIND');
+      expect(res.cancelledAt).toBeTruthy();
+    });
+
+    it('should propagate API error messages when cancellation fails', async () => {
+      (apiClientModule.apiClient as jest.Mock).mockRejectedValue(
+        new Error('Order cannot be cancelled in status SHIPPED'),
+      );
+
+      await expect(
+        cancelOrder(mockOrder.id, { reason: 'OTHER' }),
+      ).rejects.toThrow('Order cannot be cancelled in status SHIPPED');
     });
 
     it('should calculate merchant subtotal strictly from merchant items in mixed orders', () => {

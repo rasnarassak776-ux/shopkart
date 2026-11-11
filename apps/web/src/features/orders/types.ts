@@ -16,8 +16,32 @@ export type PaymentStatus =
   | 'PAID'
   | 'FAILED'
   | 'REFUNDED'
+  | 'REFUND_PENDING'
   | 'COD_PENDING'
   | 'COD_COLLECTED';
+
+export type CancellationReason =
+  | 'CHANGED_MIND'
+  | 'FOUND_BETTER_PRICE'
+  | 'DELIVERY_TOO_SLOW'
+  | 'ITEM_UNAVAILABLE'
+  | 'ORDER_PLACED_BY_MISTAKE'
+  | 'OTHER';
+
+export const CANCELLABLE_ORDER_STATUSES: OrderStatus[] = [
+  'PENDING',
+  'CONFIRMED',
+  'PROCESSING',
+];
+
+export const CANCELLATION_REASONS: Array<{ value: CancellationReason; label: string }> = [
+  { value: 'CHANGED_MIND', label: 'Changed my mind' },
+  { value: 'FOUND_BETTER_PRICE', label: 'Found a better price elsewhere' },
+  { value: 'DELIVERY_TOO_SLOW', label: 'Delivery is taking too long' },
+  { value: 'ITEM_UNAVAILABLE', label: 'Item is no longer available' },
+  { value: 'ORDER_PLACED_BY_MISTAKE', label: 'Order placed by mistake' },
+  { value: 'OTHER', label: 'Other reason' },
+];
 
 export interface OrderItem {
   id: string;
@@ -63,6 +87,9 @@ export interface Order {
   currency?: string;
   itemCount?: number;
   status: OrderStatus;
+  cancellationReason?: string | null;
+  cancellationComment?: string | null;
+  cancelledAt?: string | null;
   createdAt: string;
   updatedAt: string;
   items: OrderItem[];

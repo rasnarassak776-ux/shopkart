@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button, ChevronRightIcon, ShoppingBagIcon } from '@/components/ui';
@@ -9,15 +9,31 @@ import { cn } from '@/lib/cn';
 import { presentationFeaturedProducts } from '@/features/storefront/presentation-data';
 import { formatCurrency, formatShortDate } from '../order-utils';
 import { OrderStatusBadge, PaymentStatusBadge } from './order-status-badge';
-import type { Order } from '../types';
+import { CancelOrderDialog } from './cancel-order-dialog';
+import { CANCELLABLE_ORDER_STATUSES, type Order } from '../types';
 
 interface OrderCardProps {
   order: Order;
   /** Override the details link (merchant console uses its own order pages). */
   detailHref?: string;
+  /** Customer lists can refresh state after a successful cancellation. */
+  onCancelled?: (order: Order) => void;
+  /** Only customer-facing lists may offer self-service cancellation. */
+  allowCancellation?: boolean;
 }
 
-export function OrderCard({ order, detailHref }: OrderCardProps) {
+export function OrderCard({
+  order,
+  detailHref,
+  onCancelled,
+  allowCancellation = false,
+}: OrderCardProps) {
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const canCancel =
+    allowCancellation &&
+    !order.cancelledAt &&
+    CANCELLABLE_ORDER_STATUSES.includes(order.status);
+
   const payment = order.payment || (order.payments && order.payments[0]);
   const items = order.items || [];
   const itemCount =
@@ -131,8 +147,18 @@ export function OrderCard({ order, detailHref }: OrderCardProps) {
           </div>
         </div>
 
-        {/* Action Button */}
-        <div className="shrink-0 flex items-center justify-end">
+        {/* Action Buttons */}
+        <div className="shrink-0 flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2">
+          {canCancel && (
+            <Button
+              variant="secondary"
+              size="md"
+              className="w-full sm:w-auto font-semibold text-danger border-danger/40 hover:bg-red-50"
+              onClick={() => setShowCancelDialog(true)}
+            >
+              Cancel Order
+            </Button>
+          )}
           <Link href={detailHref ?? `/orders/${order.id}`} className="w-full sm:w-auto">
             <Button variant="secondary" size="md" className="w-full sm:w-auto font-semibold">
               View Order Details
@@ -141,6 +167,15 @@ export function OrderCard({ order, detailHref }: OrderCardProps) {
           </Link>
         </div>
       </div>
+
+      {canCancel && (
+        <CancelOrderDialog
+          order={order}
+          open={showCancelDialog}
+          onClose={() => setShowCancelDialog(false)}
+          onCancelled={(updated) => onCancelled?.(updated)}
+        />
+      )}
     </div>
   );
 }

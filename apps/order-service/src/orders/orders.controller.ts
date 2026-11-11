@@ -17,6 +17,7 @@ import { OrderStatus } from '@prisma/client';
 import { UserRole } from '@shopkart/common';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { CancelOrderDto } from './dto/cancel-order.dto';
 import { QueryOrdersDto } from './dto/query-orders.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -126,6 +127,17 @@ export class OrdersController {
     @Body() body: UpdateOrderStatusDto,
   ) {
     return this.ordersService.updateMerchantOrderStatus(user, id, body);
+  }
+
+  // ---------------- Customer Order Cancellation ----------------
+
+  @Patch(':id/cancel')
+  async cancelOrder(
+    @CurrentUser('id') userId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: CancelOrderDto,
+  ) {
+    return this.ordersService.cancelOrder(userId, id, dto);
   }
 
   // ---------------- Customer Order Details ----------------

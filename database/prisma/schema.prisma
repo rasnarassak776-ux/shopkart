@@ -211,6 +211,7 @@ enum PaymentStatus {
   PAID
   FAILED
   REFUNDED
+  REFUND_PENDING
   COD_PENDING
   COD_COLLECTED
 
@@ -223,6 +224,9 @@ model Order {
   addressSnapshot Json        @map("address_snapshot")
   totalAmount     Decimal     @map("total_amount") @db.Decimal(12, 2)
   status          OrderStatus @default(PENDING)
+  cancellationReason  String?  @map("cancellation_reason") @db.VarChar(60)
+  cancellationComment String?  @map("cancellation_comment") @db.VarChar(500)
+  cancelledAt     DateTime?   @map("cancelled_at") @db.Timestamptz(6)
   createdAt       DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt       DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
 

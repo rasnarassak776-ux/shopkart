@@ -1,5 +1,6 @@
 import { apiClient } from '@/lib/api-client';
 import type {
+  CancellationReason,
   Order,
   OrderStatus,
   PaginatedOrdersResponse,
@@ -44,6 +45,24 @@ export async function getOrderById(
   return apiClient<Order>(
     `${ORDER_API_URL}/api/v1/orders/${encodeURIComponent(id)}`,
     init,
+  );
+}
+
+/**
+ * Customer: cancel an eligible order with a reason and optional comment.
+ */
+export async function cancelOrder(
+  orderId: string,
+  payload: { reason: CancellationReason; comment?: string },
+  init?: RequestInit,
+): Promise<Order> {
+  return apiClient<Order>(
+    `${ORDER_API_URL}/api/v1/orders/${encodeURIComponent(orderId)}/cancel`,
+    {
+      ...init,
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    },
   );
 }
 

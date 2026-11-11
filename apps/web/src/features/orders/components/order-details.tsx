@@ -23,8 +23,14 @@ import { presentationFeaturedProducts } from '@/features/storefront/presentation
 import { formatCurrency, formatDate } from '../order-utils';
 import { OrderStatusBadge, PaymentStatusBadge } from './order-status-badge';
 import { OrderTimeline } from './order-timeline';
+import { CancelOrderDialog } from './cancel-order-dialog';
 import { OrderLoadingSkeleton, OrderErrorState } from '../order-states';
-import type { Order, OrderStatus } from '../types';
+import {
+  CANCELLABLE_ORDER_STATUSES,
+  CANCELLATION_REASONS,
+  type Order,
+  type OrderStatus,
+} from '../types';
 
 const ALLOWED_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   PENDING: ['CONFIRMED', 'CANCELLED'],
@@ -61,6 +67,9 @@ export function OrderDetails({
   const [notes, setNotes] = useState('');
   const [updateSuccess, setUpdateSuccess] = useState<string | null>(null);
   const [updateError, setUpdateError] = useState<string | null>(null);
+
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [cancelSuccess, setCancelSuccess] = useState<string | null>(null);
 
   const fetchOrder = async () => {
     try {
@@ -155,6 +164,16 @@ export function OrderDetails({
     order.itemCount ??
     items.reduce((sum, item) => sum + (item.quantity || 1), 0);
 
+  const canCustomerCancel =
+    !isMerchantView &&
+    !order.cancelledAt &&
+    CANCELLABLE_ORDER_STATUSES.includes(order.status);
+
+  const cancellationReasonLabel = order.cancellationReason
+    ? CANCELLATION_REASONS.find((r) => r.value === order.cancellationReason)?.label ??
+      order.cancellationReason.replace(/_/g, ' ').toLowerCase()
+    : null;
+
   return (
     <div className="py-4 sm:py-8 space-y-8">
       {/* Top Navigation & Breadcrumb */}
@@ -186,6 +205,19 @@ export function OrderDetails({
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
+          {canCustomerCancel && (
+            <Button
+              variant="secondary"
+              size="sm"
+              className="font-semibold text-danger border-danger/40 hover:bg-red-50"
+              onClick={() => {
+                setCancelSuccess(null);
+                setShowCancelDialog(true);
+              }}
+            >
+              Cancel Order
+            </Button>
+          )}
           <Link href="/products">
             <Button variant="secondary" size="sm" className="font-semibold">
               Continue Shopping
@@ -193,6 +225,12 @@ export function OrderDetails({
           </Link>
         </div>
       </div>
+
+      {cancelSuccess && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+          ✓ {cancelSuccess}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left Column (2 Cols): Items & Timeline */}
@@ -297,6 +335,39 @@ export function OrderDetails({
 
         {/* Right Column (1 Col): Delivery & Payment Information */}
         <div className="space-y-6">
+          {/* Cancellation Details Card */}
+          {order.status === 'CANCELLED' && (
+            <div className="rounded-2xl border border-red-200 bg-red-50/60 p-5 sm:p-6 shadow-card space-y-3">
+              <h3 className={cn(textStyles.h3, 'text-ink')}>Cancellation Details</h3>
+              <div className="space-y-1.5 text-xs sm:text-sm text-ink-secondary">
+                {cancellationReasonLabel && (
+                  <p>
+                    <span className="text-ink-muted">Reason:</span>{' '}
+                    <span className="font-semibold text-ink">{cancellationReasonLabel}</span>
+                  </p>
+                )}
+                {order.cancellationComment && (
+                  <p>
+                    <span className="text-ink-muted">Comment:</span>{' '}
+                    <span className="text-ink">{order.cancellationComment}</span>
+                  </p>
+                )}
+                {order.cancelledAt && (
+                  <p>
+                    <span className="text-ink-muted">Cancelled on:</span>{' '}
+                    <span className="font-semibold text-ink">{formatDate(order.cancelledAt)}</span>
+                  </p>
+                )}
+                {payment?.paymentStatus === 'REFUND_PENDING' && (
+                  <p className="rounded-lg border border-amber-200 bg-amber-50 p-2.5 text-[11px] text-amber-900 leading-relaxed">
+                    A refund for the paid amount has been queued and will be
+                    processed by our payments team.
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Merchant Fulfillment Controls */}
           {isMerchantView && (
             <div className="rounded-2xl border border-line bg-surface p-5 sm:p-6 shadow-card space-y-4">
@@ -477,6 +548,20 @@ export function OrderDetails({
           </div>
         </div>
       </div>
+
+      {canCustomerCancel && (
+        <CancelOrderDialog
+          order={order}
+          open={showCancelDialog}
+          onClose={() => setShowCancelDialog(false)}
+          onCancelled={(updated) => {
+            setOrder(updated);
+            setCancelSuccess(
+              'Order cancelled successfully. Reserved stock has been released.',
+            );
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -8,4 +8,5 @@ export * from './components/order-card';
 export * from './components/merchant-order-list';
 export * from './components/order-list';
 export * from './components/order-details';
+export * from './components/cancel-order-dialog';
 export * from './components/order-confirmation';
