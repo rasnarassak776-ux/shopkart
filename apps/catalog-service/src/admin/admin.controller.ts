@@ -26,7 +26,7 @@ import {
 } from '../categories/dto/update-category.dto';
 import { AdminStatsService } from './admin-stats.service';
 import { AdminInventoryService } from './admin-inventory.service';
-import { UpdateInventoryDto } from './dto/update-inventory.dto';
+import { InventoryQueryDto, StockAdjustmentDto, LowStockThresholdDto, StockHistoryQueryDto } from './dto/inventory.dto';
 import { ProductsService, ConsoleActor } from '../products/products.service';
 import { CreateProductDto } from '../products/dto/create-product.dto';
 import {
@@ -198,20 +198,32 @@ export class AdminController {
   // ---------------- Inventory ----------------
 
   @Get('inventory')
-  async listInventory(@CurrentUser() user: RequestUser) {
-    return this.inventoryService.list(toActor(user));
+  async listInventory(@Query() query: InventoryQueryDto, @CurrentUser() user: RequestUser) {
+    return this.inventoryService.list(toActor(user), query);
   }
 
-  @Patch('inventory/:productId')
-  async updateInventory(
-    @Param('productId', ParseUUIDPipe) productId: string,
-    @Body() dto: UpdateInventoryDto,
-    @CurrentUser() user: RequestUser,
-  ) {
-    return this.inventoryService.updateAvailableQuantity(
-      productId,
-      dto.availableQuantity,
-      toActor(user),
-    );
+  @Get('inventory/history')
+  async inventoryHistory(@Query() query: StockHistoryQueryDto, @CurrentUser() user: RequestUser) {
+    return this.inventoryService.history(toActor(user), query);
+  }
+
+  @Post('inventory/:productId/increase')
+  async increaseInventory(@Param('productId', ParseUUIDPipe) productId: string, @Body() dto: StockAdjustmentDto, @CurrentUser() user: RequestUser) {
+    return this.inventoryService.increaseStock(productId, dto, toActor(user));
+  }
+
+  @Post('inventory/:productId/decrease')
+  async decreaseInventory(@Param('productId', ParseUUIDPipe) productId: string, @Body() dto: StockAdjustmentDto, @CurrentUser() user: RequestUser) {
+    return this.inventoryService.decreaseStock(productId, dto, toActor(user));
+  }
+
+  @Post('inventory/:productId/adjust')
+  async adjustInventory(@Param('productId', ParseUUIDPipe) productId: string, @Body() dto: StockAdjustmentDto, @CurrentUser() user: RequestUser) {
+    return this.inventoryService.manualAdjustment(productId, dto, toActor(user));
+  }
+
+  @Patch('inventory/:productId/threshold')
+  async updateInventoryThreshold(@Param('productId', ParseUUIDPipe) productId: string, @Body() dto: LowStockThresholdDto, @CurrentUser() user: RequestUser) {
+    return this.inventoryService.updateThreshold(productId, dto, toActor(user));
   }
 }

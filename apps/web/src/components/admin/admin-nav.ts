@@ -65,6 +65,7 @@ export const superadminNavSections: AdminNavSection[] = [
     items: [
       { label: 'Platform overview', href: '/superadmin/dashboard', icon: ShieldIcon, availability: 'available', exact: true },
       { label: 'Merchant accounts', href: '/superadmin/merchants', icon: UsersIcon, availability: 'available' },
+      { label: 'Platform inventory', href: '/superadmin/inventory', icon: PackageIcon, availability: 'available' },
       { label: 'Platform settings', href: '/superadmin/settings', icon: SettingsIcon, availability: 'available' },
     ],
   },

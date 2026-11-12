@@ -683,6 +683,8 @@ describe('OrdersService', () => {
           expect.anything(),
           mockOrderRaw.id,
           ['prod-merchant-a'],
+          expect.any(String),
+          expect.any(String),
         );
       });
 

@@ -198,7 +198,9 @@ export class OrdersService {
             productId: i.productId,
             productName: i.name,
             quantity: i.quantity,
+            merchantId: i.merchantId,
           })),
+          userId,
         );
 
         return order;
@@ -399,7 +401,7 @@ export class OrdersService {
 
         // Release all reserved inventory exactly once (reservations are flipped
         // to RELEASED inside this transaction).
-        await this.inventoryService.releaseStockInTx(tx, orderId);
+        await this.inventoryService.releaseStockInTx(tx, orderId, userId, `Customer cancellation: ${dto.reason}`);
 
         // Paid orders have no automated refund gateway; record a pending refund
         // state that must be confirmed manually before it is marked refunded.
@@ -703,7 +705,7 @@ export class OrdersService {
 
         // 3. Release inventory stock if transitioning to CANCELLED
         if (targetStatus === OrderStatus.CANCELLED) {
-          await this.inventoryService.releaseStockForItemsInTx(tx, orderId, targetProductIds);
+          await this.inventoryService.releaseStockForItemsInTx(tx, orderId, targetProductIds, actor.id, `${targetStatus} by ${actor.role}`);
         }
 
         // 4. Determine aggregate customer order status across ALL items in this order

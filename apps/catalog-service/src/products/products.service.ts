@@ -65,8 +65,9 @@ export class ProductsService {
 
   private buildWhere(query: QueryProductsDto): Prisma.ProductWhereInput {
     const where: Prisma.ProductWhereInput = {
-      // Customer-facing listing always excludes inactive products.
+      // Customer-facing listing always excludes inactive and out-of-stock products.
       isActive: true,
+      outOfStock: false,
     };
 
     if (query.categoryId) {
@@ -176,7 +177,7 @@ export class ProductsService {
       },
     });
 
-    if (!product || !product.isActive) {
+    if (!product || !product.isActive || product.outOfStock) {
       throw new NotFoundException(`Product with ID "${id}" not found`);
     }
 
@@ -197,7 +198,7 @@ export class ProductsService {
       },
     });
 
-    if (!product || !product.isActive) {
+    if (!product || !product.isActive || product.outOfStock) {
       throw new NotFoundException(`Product with slug "${slug}" not found`);
     }
 
@@ -422,6 +423,7 @@ export class ProductsService {
           // may optionally set merchantId explicitly.
           merchantId: this.isPlatformAdmin(actor) ? dto.merchantId ?? null : actor.id,
           isActive: dto.isActive ?? true,
+          outOfStock: true,
         },
         include: productInclude,
       });

@@ -115,6 +115,7 @@ model Product {
   price       Decimal  @db.Decimal(12, 2)
   brand       String?  @db.VarChar(100)
   isActive    Boolean  @default(true) @map("is_active")
+  outOfStock  Boolean  @default(true) @map("out_of_stock")
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
@@ -304,11 +305,26 @@ enum ReservationStatus {
   @@schema("inventory")
 }
 
+enum StockMovementAction {
+  INITIAL_STOCK
+  STOCK_ADDED
+  STOCK_REDUCED
+  ORDER_RESERVED
+  ORDER_COMMITTED
+  ORDER_CANCELLED
+  PAYMENT_FAILED_RELEASE
+  MANUAL_ADJUSTMENT
+
+  @@schema("inventory")
+}
+
 model Inventory {
   id                String   @id @default(uuid()) @db.Uuid
   productId         String   @unique @map("product_id") @db.Uuid
   availableQuantity Int      @default(0) @map("available_quantity")
   reservedQuantity  Int      @default(0) @map("reserved_quantity")
+  lowStockThreshold Int      @default(0) @map("low_stock_threshold")
+  lowStockAlertedAt DateTime? @map("low_stock_alerted_at") @db.Timestamptz(6)
   updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@map("inventory")
@@ -328,6 +344,25 @@ model InventoryReservation {
   @@index([productId])
   @@index([status, expiresAt])
   @@map("inventory_reservations")
+  @@schema("inventory")
+}
+
+model StockMovement {
+  id              String              @id @default(uuid()) @db.Uuid
+  productId       String              @map("product_id") @db.Uuid
+  merchantId      String?             @map("merchant_id") @db.Uuid
+  previousQuantity Int                @map("previous_quantity")
+  quantityChanged Int                 @map("quantity_changed")
+  newQuantity     Int                 @map("new_quantity")
+  actionType      StockMovementAction @map("action_type")
+  reason          String?             @db.VarChar(500)
+  userId          String?             @map("user_id") @db.Uuid
+  createdAt       DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([productId, createdAt])
+  @@index([merchantId, createdAt])
+  @@index([createdAt])
+  @@map("stock_movements")
   @@schema("inventory")
 }
 

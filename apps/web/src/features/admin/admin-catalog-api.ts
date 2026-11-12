@@ -153,31 +153,115 @@ export function setPrimaryProductImage(
 
 // ---------------- Inventory ----------------
 
+export type InventoryStockStatus = 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK';
+
 export interface AdminInventoryItem {
   productId: string;
   name: string;
   sku: string;
   brand: string | null;
+  imageUrl: string | null;
   isActive: boolean;
+  outOfStock: boolean;
   merchantId: string | null;
   availableQuantity: number;
   reservedQuantity: number;
+  lowStockThreshold: number;
+  stockStatus: InventoryStockStatus;
   updatedAt: string;
 }
 
-export function getAdminInventory(init?: RequestInit): Promise<AdminInventoryItem[]> {
-  return apiClient<AdminInventoryItem[]>(`${ADMIN_BASE}/inventory`, init);
+export interface InventorySummary {
+  totalProducts: number;
+  inStock: number;
+  lowStock: number;
+  outOfStock: number;
 }
 
-export function updateAdminInventory(
-  productId: string,
-  availableQuantity: number,
-): Promise<AdminInventoryItem> {
-  return apiClient<AdminInventoryItem>(
-    `${ADMIN_BASE}/inventory/${encodeURIComponent(productId)}`,
-    {
-      method: 'PATCH',
-      body: JSON.stringify({ availableQuantity }),
-    },
-  );
+export interface InventoryListResponse {
+  data: AdminInventoryItem[];
+  summary: InventorySummary;
+  pagination: { page: number; limit: number; total: number; totalPages: number };
+}
+
+export interface StockMovement {
+  id: string;
+  productId: string;
+  merchantId: string | null;
+  previousQuantity: number;
+  quantityChanged: number;
+  newQuantity: number;
+  actionType: string;
+  reason: string | null;
+  userId: string | null;
+  createdAt: string;
+  product?: { id: string; name: string; sku: string; merchantId: string | null } | null;
+}
+
+export interface StockHistoryResponse {
+  data: StockMovement[];
+  pagination: { page: number; limit: number; total: number; totalPages: number };
+}
+
+export interface InventoryQuery {
+  page?: number;
+  limit?: number;
+  status?: 'all' | 'in_stock' | 'low_stock' | 'out_of_stock';
+  search?: string;
+  merchantId?: string;
+}
+
+function inventoryQueryString(query: InventoryQuery = {}): string {
+  const params = new URLSearchParams();
+  if (query.page) params.set('page', String(query.page));
+  if (query.limit) params.set('limit', String(query.limit));
+  if (query.status && query.status !== 'all') params.set('status', query.status);
+  if (query.search?.trim()) params.set('search', query.search.trim());
+  if (query.merchantId) params.set('merchantId', query.merchantId);
+  const qs = params.toString();
+  return qs ? `?${qs}` : '';
+}
+
+export function getAdminInventory(query: InventoryQuery = {}, init?: RequestInit): Promise<InventoryListResponse> {
+  return apiClient<InventoryListResponse>(`${ADMIN_BASE}/inventory${inventoryQueryString(query)}`, init);
+}
+
+export function adjustAdminInventory(productId: string, quantityDelta: number, reason: string) {
+  return apiClient<AdminInventoryItem>(`${ADMIN_BASE}/inventory/${encodeURIComponent(productId)}/adjust`, {
+    method: 'POST',
+    body: JSON.stringify({ quantityDelta, reason }),
+  });
+}
+
+export function increaseAdminInventory(productId: string, quantity: number, reason: string) {
+  return apiClient<AdminInventoryItem>(`${ADMIN_BASE}/inventory/${encodeURIComponent(productId)}/increase`, {
+    method: 'POST',
+    body: JSON.stringify({ quantity, reason }),
+  });
+}
+
+export function decreaseAdminInventory(productId: string, quantity: number, reason: string) {
+  return apiClient<AdminInventoryItem>(`${ADMIN_BASE}/inventory/${encodeURIComponent(productId)}/decrease`, {
+    method: 'POST',
+    body: JSON.stringify({ quantity, reason }),
+  });
+}
+
+export function updateAdminInventoryThreshold(productId: string, lowStockThreshold: number) {
+  return apiClient<AdminInventoryItem>(`${ADMIN_BASE}/inventory/${encodeURIComponent(productId)}/threshold`, {
+    method: 'PATCH',
+    body: JSON.stringify({ lowStockThreshold }),
+  });
+}
+
+export function getAdminStockHistory(query: { productId?: string; merchantId?: string; from?: string; to?: string; page?: number; limit?: number } = {}): Promise<StockHistoryResponse> {
+  const params = new URLSearchParams();
+  if (query.productId) params.set('productId', query.productId);
+  if (query.merchantId) params.set('merchantId', query.merchantId);
+  if (query.from) params.set('from', query.from);
+  if (query.to) params.set('to', query.to);
+  if (query.page) params.set('page', String(query.page));
+  if (query.limit) params.set('limit', String(query.limit));
+  const qs = params.toString();
+  return apiClient<StockHistoryResponse>(`${ADMIN_BASE}/inventory/history${qs ? `?${qs}` : ''}`);
 }

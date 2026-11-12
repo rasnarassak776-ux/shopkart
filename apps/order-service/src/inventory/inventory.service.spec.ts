@@ -1,3 +1,4 @@
+/// <reference types="jest" />
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException } from '@nestjs/common';
 import { ReservationStatus } from '@prisma/client';
@@ -56,6 +57,12 @@ describe('InventoryService', () => {
     it('should successfully reserve stock and create reservation record', async () => {
       const mockTx: any = {
         $executeRaw: jest.fn().mockResolvedValue(1), // 1 row updated
+        inventory: {
+          findUnique: jest.fn().mockResolvedValue({ productId: 'prod-1', availableQuantity: 8, reservedQuantity: 2, lowStockThreshold: 0, lowStockAlertedAt: null }),
+          update: jest.fn(),
+        },
+        product: { update: jest.fn() },
+        stockMovement: { create: jest.fn() },
         inventoryReservation: {
           create: jest.fn().mockResolvedValue({ id: 'res-1' }),
         },
@@ -108,6 +115,17 @@ describe('InventoryService', () => {
           ]),
           update: jest.fn().mockResolvedValue({ id: 'res-1', status: 'RELEASED' }),
         },
+        inventory: {
+          findUnique: jest.fn()
+            .mockResolvedValueOnce({ productId: 'prod-1', availableQuantity: 3, reservedQuantity: 1, lowStockThreshold: 0, lowStockAlertedAt: null })
+            .mockResolvedValue({ productId: 'prod-1', availableQuantity: 6, reservedQuantity: 0, lowStockThreshold: 0, lowStockAlertedAt: null }),
+          update: jest.fn(),
+        },
+        product: {
+          findUnique: jest.fn().mockResolvedValue({ merchantId: null }),
+          update: jest.fn(),
+        },
+        stockMovement: { create: jest.fn() },
         $executeRaw: jest.fn().mockResolvedValue(1),
       };
 

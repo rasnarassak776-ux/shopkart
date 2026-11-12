@@ -20,7 +20,7 @@ describe('role-aware console navigation', () => {
 
   it('superadmins see superadmin navigation plus inherited merchant navigation', () => {
     expect(hrefs(getConsoleNavSections('superadmin'))).toEqual([...hrefs(superadminNavSections), ...hrefs(adminNavSections)]);
-    expect(hrefs(superadminNavSections)).toEqual(['/superadmin/dashboard', '/superadmin/merchants', '/superadmin/settings']);
+    expect(hrefs(superadminNavSections)).toEqual(['/superadmin/dashboard', '/superadmin/merchants', '/superadmin/inventory', '/superadmin/settings']);
   });
 
   it('customers and unknown roles get no console navigation', () => {

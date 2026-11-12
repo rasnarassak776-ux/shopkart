@@ -45,9 +45,12 @@ describe('Member 3 – Phase 5: Inventory Atomic Concurrency Tests', () => {
         $executeRaw: jest.fn().mockImplementation(() => atomicDbUpdate('prod-uuid', 1)),
         inventory: {
           findUnique: jest.fn().mockImplementation(() =>
-            Promise.resolve({ availableQuantity, reservedQuantity }),
+            Promise.resolve({ availableQuantity, reservedQuantity, lowStockThreshold: 0, lowStockAlertedAt: null }),
           ),
+          update: jest.fn(),
         },
+        product: { update: jest.fn() },
+        stockMovement: { create: jest.fn() },
         inventoryReservation: {
           create: jest.fn().mockImplementation(({ data }) => {
             reservations.push(data);
