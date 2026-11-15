@@ -65,7 +65,12 @@ export interface Payment {
   paymentMethod: PaymentMethod;
   paymentStatus: PaymentStatus;
   amount: string;
+  currency?: string;
   transactionReference?: string | null;
+  razorpayOrderId?: string | null;
+  razorpayPaymentId?: string | null;
+  paymentVerifiedAt?: string | null;
+  failureReason?: string | null;
   idempotencyKey?: string;
   createdAt?: string;
 }

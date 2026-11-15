@@ -36,12 +36,11 @@ export const PAYMENT_OPTIONS: PaymentOption[] = [
   },
   {
     id: 'ONLINE',
-    name: 'Online Payment (Card / UPI / NetBanking)',
-    description: 'Secure digital checkout via UPI, Debit/Credit Card or NetBanking.',
-    badge: 'Available in Phase 5',
-    badgeVariant: 'neutral',
+    name: 'Pay Online (Razorpay)',
+    description: 'Pay instantly via UPI, Debit/Credit Card or NetBanking. Secured by Razorpay.',
+    badge: 'Instant',
+    badgeVariant: 'accent',
     isAvailable: true,
-    unavailableReason: 'Gateway processing will be connected during order placement (Phase 5).',
   },
 ];
 

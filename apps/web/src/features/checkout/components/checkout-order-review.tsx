@@ -17,7 +17,12 @@ import { cn } from '@/lib/cn';
 import { useCart } from '@/features/cart';
 import { presentationFeaturedProducts } from '@/features/storefront/presentation-data';
 import { useCheckout } from '../checkout-context';
-import { placeOrder } from '../checkout-api';
+import { placeOrder, createRazorpayOrder, verifyRazorpayPayment } from '../checkout-api';
+import {
+  loadRazorpayScript,
+  openRazorpayCheckout,
+  RazorpayCheckoutDismissed,
+} from '../razorpay-checkout';
 
 export function formatCurrency(amount: string | number): string {
   const num = typeof amount === 'string' ? parseFloat(amount) : amount;
@@ -56,7 +61,7 @@ export function CheckoutOrderReview() {
   const subtotal = cart?.summary.subtotal || '0.00';
 
   const isCod = selectedPaymentMethod === 'COD';
-  const canPlaceOrder = validation.canProceed && !cartLoading && !isPlacingOrder && isCod;
+  const canPlaceOrder = validation.canProceed && !cartLoading && !isPlacingOrder;
 
   const handlePlaceOrder = async () => {
     if (!selectedAddress?.id) {
@@ -64,32 +69,71 @@ export function CheckoutOrderReview() {
       return;
     }
 
-    if (!isCod) {
-      setPlaceOrderError(
-        'Online payment gateway is scheduled for Phase 8. Please select Cash on Delivery to place your order.',
-      );
-      return;
-    }
-
     setIsPlacingOrder(true);
     setPlaceOrderError(null);
 
     try {
-      const response = await placeOrder({
+      if (isCod) {
+        const response = await placeOrder({
+          addressId: selectedAddress.id,
+          paymentMethod: 'COD',
+          idempotencyKey,
+        });
+
+        // Navigate to order confirmation first to prevent brief empty-cart flash on /checkout
+        router.push(`/orders/${response.orderId}/confirmation`);
+
+        // Synchronize cart state in background to reflect cart conversion
+        void refreshCart();
+        return;
+      }
+
+      // ONLINE (Razorpay): create order + Razorpay order on the backend,
+      // open Standard Checkout, then verify the payment server-side.
+      const session = await createRazorpayOrder({
         addressId: selectedAddress.id,
-        paymentMethod: 'COD',
         idempotencyKey,
       });
 
-      // Navigate to order confirmation first to prevent brief empty-cart flash on /checkout
-      router.push(`/orders/${response.orderId}/confirmation`);
+      await loadRazorpayScript();
 
-      // Synchronize cart state in background to reflect cart conversion
+      const checkoutResponse = await openRazorpayCheckout({
+        keyId: session.keyId,
+        razorpayOrderId: session.razorpayOrderId,
+        amount: session.amount,
+        currency: session.currency,
+        description: `Shopkart Order ${session.orderId.slice(0, 8).toUpperCase()}`,
+        prefill: session.prefill,
+        notes: { order_id: session.orderId },
+      });
+
+      const verification = await verifyRazorpayPayment({
+        orderId: session.orderId,
+        razorpayOrderId: session.razorpayOrderId,
+        razorpayPaymentId: checkoutResponse.razorpay_payment_id,
+        razorpaySignature: checkoutResponse.razorpay_signature,
+      });
+
+      if (verification.paymentStatus !== 'PAID') {
+        setIsPlacingOrder(false);
+        setPlaceOrderError(
+          `Payment could not be confirmed (status: ${verification.paymentStatus}). Your order is saved — you can retry payment from the order details page.`,
+        );
+        return;
+      }
+
+      router.push(`/orders/${session.orderId}/confirmation`);
       void refreshCart();
     } catch (err: any) {
       setIsPlacingOrder(false);
+      if (err instanceof RazorpayCheckoutDismissed) {
+        setPlaceOrderError(
+          'Payment checkout was closed before completion. Your order has been saved — open the order details page to retry payment.',
+        );
+        return;
+      }
       setPlaceOrderError(
-        err.message || 'Unable to place order. Please review your cart and try again.',
+        err.message || 'Unable to complete payment. Please try again.',
       );
     }
   };
@@ -272,21 +316,22 @@ export function CheckoutOrderReview() {
                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                 />
               </svg>
-              Placing Order...
+              {isCod ? 'Placing Order...' : 'Opening Secure Payment...'}
             </span>
-          ) : (
+          ) : isCod ? (
             `Place Order • ${formatCurrency(subtotal)}`
+          ) : (
+            `Pay Now • ${formatCurrency(subtotal)}`
           )}
         </Button>
 
-        {!isCod && (
-          <p className="mt-2 text-center text-[11px] text-amber-700 font-medium">
-            Online payment gateway will be available in Phase 8. Please select Cash on Delivery.
-          </p>
-        )}
-        {isCod && (
+        {isCod ? (
           <p className="mt-2 text-center text-[11px] text-ink-muted">
             You will pay {formatCurrency(subtotal)} in cash upon product delivery.
+          </p>
+        ) : (
+          <p className="mt-2 text-center text-[11px] text-ink-muted">
+            You will be redirected to Razorpay&apos;s secure checkout to pay {formatCurrency(subtotal)} online.
           </p>
         )}
       </div>

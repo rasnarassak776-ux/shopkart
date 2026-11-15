@@ -172,10 +172,10 @@ describe('Member 3 – Phase 4: Checkout Unit & Integration Logic Tests', () => 
       expect(selectedMethod).toBe('ONLINE');
     });
 
-    it('should display descriptive explanation for Online Payment availability', () => {
+    it('should mark Online Payment as available via Razorpay', () => {
       const onlineOption = PAYMENT_OPTIONS.find((o) => o.id === 'ONLINE');
-      expect(onlineOption?.unavailableReason).toBeDefined();
-      expect(onlineOption?.unavailableReason).toContain('Phase 5');
+      expect(onlineOption?.isAvailable).toBe(true);
+      expect(onlineOption?.name).toContain('Razorpay');
     });
   });
 

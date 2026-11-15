@@ -12,10 +12,16 @@ export interface OrderItemResponse {
 }
 
 export interface OrderPaymentResponse {
+  id?: string;
   paymentMethod: string;
   paymentStatus: string;
   amount: string;
   idempotencyKey?: string;
+  currency?: string;
+  razorpayOrderId?: string | null;
+  razorpayPaymentId?: string | null;
+  paymentVerifiedAt?: string | null;
+  failureReason?: string | null;
 }
 
 export interface OrderResponse {

@@ -106,6 +106,9 @@ export function OrderConfirmation({ orderId }: { orderId: string }) {
   }
 
   const payment = order.payments && order.payments.length > 0 ? order.payments[0] : null;
+  const orderPayment = order.payment || payment;
+  const isCod = orderPayment?.paymentMethod === 'COD';
+  const isOnlinePaid = orderPayment?.paymentMethod === 'ONLINE' && orderPayment?.paymentStatus === 'PAID';
   const address = order.addressSnapshot;
 
   return (
@@ -149,19 +152,30 @@ export function OrderConfirmation({ orderId }: { orderId: string }) {
         <div className="rounded-xl border border-line bg-surface p-4 shadow-sm">
           <span className="text-xs font-medium text-ink-muted">Payment Method</span>
           <p className="mt-1 text-sm font-bold text-ink flex items-center gap-1.5">
-            <span>Cash on Delivery</span>
+            <span>{isCod ? 'Cash on Delivery' : 'Razorpay (Online)'}</span>
             <Badge variant="accent" className="text-[10px] py-0 px-1.5">
-              COD
+              {isCod ? 'COD' : 'ONLINE'}
             </Badge>
           </p>
         </div>
         <div className="rounded-xl border border-line bg-surface p-4 shadow-sm">
           <span className="text-xs font-medium text-ink-muted">Payment Status</span>
-          <p className="mt-1 text-sm font-bold text-amber-700">
-            {payment?.paymentStatus === 'COD_PENDING' || order.status === 'PENDING'
-              ? 'Pay ₹' + order.totalAmount + ' on Delivery'
-              : payment?.paymentStatus || 'Pending'}
+          <p className={cn('mt-1 text-sm font-bold', isOnlinePaid ? 'text-emerald-700' : 'text-amber-700')}>
+            {isOnlinePaid
+              ? 'Paid Successfully'
+              : isCod
+                ? payment?.paymentStatus === 'COD_PENDING' || order.status === 'PENDING'
+                  ? 'Pay ₹' + order.totalAmount + ' on Delivery'
+                  : orderPayment?.paymentStatus || 'Pending'
+                : orderPayment?.paymentStatus === 'FAILED'
+                  ? 'Payment Failed — retry from order details'
+                  : 'Payment Pending'}
           </p>
+          {isOnlinePaid && orderPayment?.razorpayPaymentId && (
+            <p className="mt-1 font-mono text-[10px] text-ink-muted truncate">
+              Ref: {orderPayment.razorpayPaymentId}
+            </p>
+          )}
         </div>
       </div>
 
@@ -210,7 +224,9 @@ export function OrderConfirmation({ orderId }: { orderId: string }) {
                 <span className="font-semibold text-emerald-700">FREE</span>
               </div>
               <div className="border-t border-line pt-3 flex justify-between items-baseline">
-                <span className={cn(textStyles.h3, 'text-ink')}>Total Payable on Delivery</span>
+                <span className={cn(textStyles.h3, 'text-ink')}>
+                  {isCod ? 'Total Payable on Delivery' : 'Total Paid'}
+                </span>
                 <span className="text-xl font-black text-ink">
                   {formatCurrency(order.totalAmount)}
                 </span>
@@ -244,17 +260,46 @@ export function OrderConfirmation({ orderId }: { orderId: string }) {
           </div>
 
           {/* Payment Guidance Card */}
-          <div className="rounded-2xl border border-line/70 bg-surface-muted/60 p-5 shadow-sm space-y-3">
-            <div className="flex items-center gap-2 text-ink font-bold">
-              <ShieldIcon className="h-4 w-4 text-emerald-700" />
-              <h3 className={cn(textStyles.h3, 'text-ink')}>Cash on Delivery Instructions</h3>
+          {isCod ? (
+            <div className="rounded-2xl border border-line/70 bg-surface-muted/60 p-5 shadow-sm space-y-3">
+              <div className="flex items-center gap-2 text-ink font-bold">
+                <ShieldIcon className="h-4 w-4 text-emerald-700" />
+                <h3 className={cn(textStyles.h3, 'text-ink')}>Cash on Delivery Instructions</h3>
+              </div>
+              <p className="text-xs text-ink-secondary leading-relaxed">
+                Please keep the exact amount of{' '}
+                <strong className="text-ink">{formatCurrency(order.totalAmount)}</strong> ready in cash
+                when our delivery partner arrives at your address.
+              </p>
             </div>
-            <p className="text-xs text-ink-secondary leading-relaxed">
-              Please keep the exact amount of{' '}
-              <strong className="text-ink">{formatCurrency(order.totalAmount)}</strong> ready in cash
-              when our delivery partner arrives at your address.
-            </p>
-          </div>
+          ) : isOnlinePaid ? (
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-5 shadow-sm space-y-3">
+              <div className="flex items-center gap-2 text-ink font-bold">
+                <ShieldIcon className="h-4 w-4 text-emerald-700" />
+                <h3 className={cn(textStyles.h3, 'text-ink')}>Payment Confirmed</h3>
+              </div>
+              <p className="text-xs text-ink-secondary leading-relaxed">
+                Your payment of <strong className="text-ink">{formatCurrency(order.totalAmount)}</strong> was
+                received securely via Razorpay. No payment is due on delivery.
+              </p>
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-5 shadow-sm space-y-3">
+              <div className="flex items-center gap-2 text-ink font-bold">
+                <ShieldIcon className="h-4 w-4 text-amber-700" />
+                <h3 className={cn(textStyles.h3, 'text-ink')}>Payment Pending</h3>
+              </div>
+              <p className="text-xs text-ink-secondary leading-relaxed">
+                Your online payment for <strong className="text-ink">{formatCurrency(order.totalAmount)}</strong> is
+                still pending. Open the order details page to retry payment — your order and reserved items are safe.
+              </p>
+              <Link href={`/orders/${order.id}`} className="block">
+                <Button variant="secondary" size="sm" className="w-full font-semibold">
+                  Go to Order Details
+                </Button>
+              </Link>
+            </div>
+          )}
 
           {/* Navigation Actions */}
           <div className="space-y-2 pt-2">

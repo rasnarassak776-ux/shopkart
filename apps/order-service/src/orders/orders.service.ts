@@ -171,12 +171,14 @@ export class OrdersService {
           });
         }
 
-        // Create COD Payment
+        // Create Payment record: COD orders start as COD_PENDING; ONLINE
+        // (Razorpay) orders start PENDING until the gateway confirms capture.
+        const isOnline = dto.paymentMethod === 'ONLINE';
         await tx.payment.create({
           data: {
             orderId: order.id,
-            paymentMethod: PaymentMethod.COD,
-            paymentStatus: PaymentStatus.COD_PENDING,
+            paymentMethod: isOnline ? PaymentMethod.ONLINE : PaymentMethod.COD,
+            paymentStatus: isOnline ? PaymentStatus.PENDING : PaymentStatus.COD_PENDING,
             amount: totalAmount,
             idempotencyKey: trimmedKey,
           },
@@ -996,12 +998,26 @@ export class OrdersService {
       items,
       payment: payment
         ? {
+            id: payment.id,
             paymentMethod: payment.paymentMethod,
             paymentStatus: payment.paymentStatus,
             amount: merchantView
               ? new Prisma.Decimal(order.totalAmount || 0).toFixed(2)
               : new Prisma.Decimal(payment.amount || 0).toFixed(2),
             idempotencyKey: payment.idempotencyKey,
+            // Gateway references are only exposed to the owning customer and
+            // superadmin; merchant views never receive them.
+            ...(merchantView
+              ? {}
+              : {
+                  currency: payment.currency || 'INR',
+                  razorpayOrderId: payment.razorpayOrderId ?? null,
+                  razorpayPaymentId: payment.razorpayPaymentId ?? null,
+                  paymentVerifiedAt: payment.paymentVerifiedAt
+                    ? new Date(payment.paymentVerifiedAt).toISOString()
+                    : null,
+                  failureReason: payment.failureReason ?? null,
+                }),
           }
         : undefined,
       statusHistory: (order.statusHistory || []).map((h: any) => ({

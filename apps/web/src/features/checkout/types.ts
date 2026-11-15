@@ -79,3 +79,34 @@ export interface CreateOrderResponse {
   paymentStatus: string;
   createdAt: string;
 }
+
+export interface RazorpayOrderSession {
+  orderId: string;
+  paymentId: string;
+  razorpayOrderId: string;
+  /** Amount in paise (smallest INR unit). */
+  amount: number;
+  amountInr: string;
+  currency: string;
+  keyId: string;
+  prefill?: {
+    name?: string;
+    email?: string;
+    contact?: string;
+  };
+}
+
+export interface VerifyRazorpayPaymentRequest {
+  orderId: string;
+  razorpayOrderId: string;
+  razorpayPaymentId: string;
+  razorpaySignature: string;
+}
+
+export interface VerifyRazorpayPaymentResponse {
+  status: string;
+  paymentStatus: string;
+  orderId: string;
+  orderStatus: string;
+  razorpayPaymentId?: string;
+}

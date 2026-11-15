@@ -6,6 +6,9 @@ import type {
   CheckoutValidationResult,
   CreateOrderRequest,
   CreateOrderResponse,
+  RazorpayOrderSession,
+  VerifyRazorpayPaymentRequest,
+  VerifyRazorpayPaymentResponse,
 } from './types';
 
 const ORDER_API_URL = (
@@ -119,4 +122,49 @@ export async function placeOrder(
     paymentStatus: data.payment?.paymentStatus || 'COD_PENDING',
     createdAt: data.createdAt,
   };
+}
+
+/**
+ * Create a Razorpay order for online payment.
+ * Pass `addressId` for a new order, or `orderId` to retry payment on an
+ * existing unpaid order. Requires an Idempotency-Key header for new orders.
+ */
+export async function createRazorpayOrder(
+  req: { addressId?: string; orderId?: string; idempotencyKey?: string },
+  init?: RequestInit,
+): Promise<RazorpayOrderSession> {
+  const headers: Record<string, string> = {};
+  if (req.idempotencyKey) {
+    headers['Idempotency-Key'] = req.idempotencyKey;
+  }
+
+  return apiClient<RazorpayOrderSession>(
+    `${ORDER_API_URL}/api/v1/payments/razorpay/create-order`,
+    {
+      ...init,
+      headers: {
+        ...headers,
+        ...(init?.headers as Record<string, string>),
+      },
+      method: 'POST',
+      body: JSON.stringify({ addressId: req.addressId, orderId: req.orderId }),
+    },
+  );
+}
+
+/**
+ * Verify a completed Razorpay Checkout payment on the backend.
+ */
+export async function verifyRazorpayPayment(
+  req: VerifyRazorpayPaymentRequest,
+  init?: RequestInit,
+): Promise<VerifyRazorpayPaymentResponse> {
+  return apiClient<VerifyRazorpayPaymentResponse>(
+    `${ORDER_API_URL}/api/v1/payments/razorpay/verify`,
+    {
+      ...init,
+      method: 'POST',
+      body: JSON.stringify(req),
+    },
+  );
 }

@@ -5,7 +5,7 @@ export class CreateOrderDto {
   @IsNotEmpty({ message: 'addressId is required' })
   addressId: string;
 
-  @IsIn(['COD'], { message: 'paymentMethod must be COD' })
+  @IsIn(['COD', 'ONLINE'], { message: 'paymentMethod must be COD or ONLINE' })
   @IsNotEmpty({ message: 'paymentMethod is required' })
-  paymentMethod: 'COD';
+  paymentMethod: 'COD' | 'ONLINE';
 }

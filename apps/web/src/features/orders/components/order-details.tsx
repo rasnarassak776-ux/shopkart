@@ -19,6 +19,15 @@ import {
 import { textStyles } from '@/design-system/text-styles';
 import { cn } from '@/lib/cn';
 import { getOrderById, getAdminOrderById, updateMerchantOrderStatus } from '../orders-api';
+import {
+  createRazorpayOrder,
+  verifyRazorpayPayment,
+} from '@/features/checkout/checkout-api';
+import {
+  loadRazorpayScript,
+  openRazorpayCheckout,
+  RazorpayCheckoutDismissed,
+} from '@/features/checkout/razorpay-checkout';
 import { presentationFeaturedProducts } from '@/features/storefront/presentation-data';
 import { formatCurrency, formatDate } from '../order-utils';
 import { OrderStatusBadge, PaymentStatusBadge } from './order-status-badge';
@@ -70,6 +79,9 @@ export function OrderDetails({
 
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [cancelSuccess, setCancelSuccess] = useState<string | null>(null);
+
+  const [isRetryingPayment, setIsRetryingPayment] = useState(false);
+  const [paymentRetryError, setPaymentRetryError] = useState<string | null>(null);
 
   const fetchOrder = async () => {
     try {
@@ -124,6 +136,46 @@ export function OrderDetails({
     }
   };
 
+  const handleRetryPayment = async () => {
+    if (!order?.id || isRetryingPayment) return;
+    setIsRetryingPayment(true);
+    setPaymentRetryError(null);
+    try {
+      const session = await createRazorpayOrder({ orderId: order.id });
+      await loadRazorpayScript();
+      const checkoutResponse = await openRazorpayCheckout({
+        keyId: session.keyId,
+        razorpayOrderId: session.razorpayOrderId,
+        amount: session.amount,
+        currency: session.currency,
+        description: `Shopkart Order ${order.id.slice(0, 8).toUpperCase()}`,
+        prefill: session.prefill,
+        notes: { order_id: order.id },
+      });
+      const verification = await verifyRazorpayPayment({
+        orderId: order.id,
+        razorpayOrderId: session.razorpayOrderId,
+        razorpayPaymentId: checkoutResponse.razorpay_payment_id,
+        razorpaySignature: checkoutResponse.razorpay_signature,
+      });
+      if (verification.paymentStatus === 'PAID') {
+        await fetchOrder();
+      } else {
+        setPaymentRetryError(
+          `Payment could not be confirmed (status: ${verification.paymentStatus}). Please try again.`,
+        );
+      }
+    } catch (err: any) {
+      if (err instanceof RazorpayCheckoutDismissed) {
+        setPaymentRetryError('Payment checkout was closed. You can retry anytime.');
+      } else {
+        setPaymentRetryError(err.message || 'Unable to process payment. Please try again.');
+      }
+    } finally {
+      setIsRetryingPayment(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="py-6 sm:py-10 space-y-6">
@@ -168,6 +220,12 @@ export function OrderDetails({
     !isMerchantView &&
     !order.cancelledAt &&
     CANCELLABLE_ORDER_STATUSES.includes(order.status);
+
+  const canRetryPayment =
+    !isMerchantView &&
+    payment?.paymentMethod === 'ONLINE' &&
+    ['PENDING', 'PROCESSING', 'FAILED'].includes(payment.paymentStatus) &&
+    order.status !== 'CANCELLED';
 
   const cancellationReasonLabel = order.cancellationReason
     ? CANCELLATION_REASONS.find((r) => r.value === order.cancellationReason)?.label ??
@@ -504,7 +562,9 @@ export function OrderDetails({
                 <span className="font-semibold text-ink">
                   {payment?.paymentMethod === 'COD'
                     ? 'Cash on Delivery (COD)'
-                    : payment?.paymentMethod || 'COD'}
+                    : payment?.paymentMethod === 'ONLINE'
+                      ? 'Razorpay (Online Payment)'
+                      : payment?.paymentMethod || 'COD'}
                 </span>
               </div>
 
@@ -522,7 +582,54 @@ export function OrderDetails({
                   {formatCurrency(payment?.amount || order.totalAmount)}
                 </span>
               </div>
+
+              {payment?.paymentMethod === 'ONLINE' && (
+                <div className="space-y-1.5 border-t border-line pt-2 text-[11px] text-ink-muted">
+                  {payment.razorpayOrderId && (
+                    <div className="flex justify-between items-center gap-2">
+                      <span>Razorpay Order:</span>
+                      <span className="font-mono text-ink truncate">{payment.razorpayOrderId}</span>
+                    </div>
+                  )}
+                  {payment.razorpayPaymentId && (
+                    <div className="flex justify-between items-center gap-2">
+                      <span>Payment Ref:</span>
+                      <span className="font-mono text-ink truncate">{payment.razorpayPaymentId}</span>
+                    </div>
+                  )}
+                  {payment.paymentVerifiedAt && (
+                    <div className="flex justify-between items-center">
+                      <span>Verified At:</span>
+                      <span className="text-ink">{formatDate(payment.paymentVerifiedAt)}</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
+
+            {payment?.paymentMethod === 'ONLINE' && payment.paymentStatus === 'FAILED' && payment.failureReason && (
+              <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-800">
+                <span className="font-bold">Payment failed:</span> {payment.failureReason}
+              </div>
+            )}
+
+            {paymentRetryError && (
+              <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-800">
+                {paymentRetryError}
+              </div>
+            )}
+
+            {canRetryPayment && (
+              <Button
+                variant="primary"
+                size="sm"
+                className="w-full font-semibold"
+                disabled={isRetryingPayment}
+                onClick={handleRetryPayment}
+              >
+                {isRetryingPayment ? 'Opening Payment...' : 'Retry Online Payment'}
+              </Button>
+            )}
 
             {payment?.paymentMethod === 'COD' && (
               <div className="rounded-xl border border-line/80 bg-surface-muted/60 p-3 text-xs text-ink-secondary space-y-1">
