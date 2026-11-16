@@ -6,7 +6,10 @@ import { usePathname } from 'next/navigation';
 import { buttonClasses, CartIcon, Container, GridIcon, HeartIcon, MenuIcon, TagIcon } from '@/components/ui';
 import { textStyles } from '@/design-system/text-styles';
 import { cn } from '@/lib/cn';
-import { PLACEHOLDER_HREF, presentationCategories } from '@/features/storefront/presentation-data';
+import { presentationCategories } from '@/features/storefront/presentation-data';
+import { getCatalogCategories } from '@/features/catalog/catalog-api';
+import { toCategorySummary } from '@/features/catalog/mappers';
+import type { CategorySummary } from '@/features/storefront/types';
 import { AccountMenu } from './account-menu';
 import { Logo } from './logo';
 import { MobileNav } from './mobile-nav';
@@ -15,15 +18,16 @@ import { useCart } from '@/features/cart';
 import { NotificationBell } from '@/features/notifications';
 
 const utilityLinks = [
-  { label: 'Help centre', href: PLACEHOLDER_HREF },
-  { label: 'Track order', href: PLACEHOLDER_HREF },
-  { label: 'Sell on Shopkart', href: PLACEHOLDER_HREF },
+  { label: 'Help centre', href: '/products' },
+  { label: 'Track order', href: '/customer/orders' },
+  { label: 'Sell on Shopkart', href: '/merchant/dashboard' },
 ];
 
 const iconButton = cn(buttonClasses({ variant: 'ghost', size: 'icon' }), 'relative');
 
 export function SiteHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [categories, setCategories] = useState<CategorySummary[]>(presentationCategories);
   const pathname = usePathname();
   const closeMenu = useCallback(() => setMenuOpen(false), []);
   const { totalItems } = useCart();
@@ -31,6 +35,27 @@ export function SiteHeader() {
   useEffect(() => {
     setMenuOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    let cancelled = false;
+    getCatalogCategories()
+      .then((data) => {
+        if (!cancelled && Array.isArray(data) && data.length > 0) {
+          const dynamicSummaries = data.map(toCategorySummary);
+          const dynamicSlugs = new Set(dynamicSummaries.map((c) => c.slug));
+          const remainingPresets = presentationCategories.filter(
+            (preset) => !dynamicSlugs.has(preset.slug),
+          );
+          setCategories([...dynamicSummaries, ...remainingPresets]);
+        }
+      })
+      .catch(() => {
+        // Fall back gracefully to presentationCategories
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <>
@@ -74,9 +99,13 @@ export function SiteHeader() {
             <div className="ml-auto flex items-center gap-0.5 sm:gap-1">
               <NotificationBell />
               <AccountMenu />
-              <button type="button" aria-label="Wishlist" className={cn(iconButton, 'hidden sm:inline-flex')}>
+              <Link
+                href="/products"
+                aria-label="Wishlist"
+                className={cn(iconButton, 'hidden sm:inline-flex')}
+              >
                 <HeartIcon className="h-[22px] w-[22px]" />
-              </button>
+              </Link>
               <Link
                 href="/cart"
                 aria-label={totalItems > 0 ? `Shopping cart with ${totalItems} items` : 'Shopping cart'}
@@ -102,16 +131,18 @@ export function SiteHeader() {
         <div className="hidden border-t border-line md:block">
           <Container>
             <nav aria-label="Primary" className="-mx-1 flex h-11 items-center gap-1 overflow-x-auto scrollbar-none">
-              <button
-                type="button"
-                onClick={() => setMenuOpen(true)}
-                className={cn(textStyles.nav, 'inline-flex shrink-0 items-center gap-2 rounded-md px-2 py-1.5 font-semibold hover:bg-surface-muted')}
+              <Link
+                href="/products"
+                className={cn(
+                  textStyles.nav,
+                  'inline-flex shrink-0 items-center gap-2 rounded-md px-2 py-1.5 font-semibold hover:bg-surface-muted',
+                )}
               >
                 <GridIcon className="h-4 w-4" />
                 All categories
-              </button>
+              </Link>
               <span className="mx-1 h-4 w-px shrink-0 bg-line-strong" aria-hidden="true" />
-              {presentationCategories.map((category) => (
+              {categories.map((category) => (
                 <Link
                   key={category.slug}
                   href={category.href}
@@ -124,7 +155,7 @@ export function SiteHeader() {
                 </Link>
               ))}
               <Link
-                href={PLACEHOLDER_HREF}
+                href="/products?sortBy=price&sortOrder=asc"
                 className={cn(
                   textStyles.nav,
                   'ml-auto inline-flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1.5 font-semibold text-accent-600 hover:bg-accent-50',
@@ -138,7 +169,7 @@ export function SiteHeader() {
         </div>
       </header>
 
-      <MobileNav open={menuOpen} onClose={closeMenu} categories={presentationCategories} />
+      <MobileNav open={menuOpen} onClose={closeMenu} categories={categories} />
     </>
   );
 }

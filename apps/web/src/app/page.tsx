@@ -2,7 +2,6 @@ import { Container, SectionHeading } from '@/components/ui';
 import { CategoryCard, HeroBanner, ProductCard, PromoBanner, TrustBar } from '@/features/storefront';
 import { getStorefrontCatalog } from '@/features/catalog/storefront-data';
 import {
-  PLACEHOLDER_HREF,
   presentationCategories,
   presentationFeaturedProducts,
   presentationHero,
@@ -33,7 +32,7 @@ export default async function HomePage() {
         <HeroBanner
           hero={presentationHero}
           tiles={presentationHeroTiles}
-          secondaryCta={{ label: "Today's deals", href: PLACEHOLDER_HREF }}
+          secondaryCta={{ label: "Today's deals", href: '/products?sortBy=price&sortOrder=asc' }}
         />
         <TrustBar />
       </div>

@@ -18,7 +18,6 @@ import type {
   CatalogSortBy,
   CatalogSortOrder,
 } from './types';
-import { CategoryList, CategoryListSkeleton } from './category-list';
 import { ProductGrid, ProductGridSkeleton } from './product-grid';
 import {
   ProductEmptyState,
@@ -139,8 +138,17 @@ export function CatalogBrowser({ searchParams }: CatalogBrowserProps) {
   // ---- Resolve category slug/id once categories load ----
   const activeCategory = useMemo(() => {
     if (!categoryParam) return null;
+    const normalizedParam = categoryParam.toLowerCase();
+    const alias =
+      normalizedParam === 'home-living' || normalizedParam === 'home-kitchen'
+        ? 'home-and-kitchen'
+        : normalizedParam;
+
     const match = categories.find(
-      (c) => (c.slug ?? c.id) === categoryParam || c.id === categoryParam,
+      (c) =>
+        (c.slug ?? c.id).toLowerCase() === normalizedParam ||
+        c.id === categoryParam ||
+        (c.slug ?? '').toLowerCase() === alias,
     );
     return match ? (match.slug ?? match.id) : categoryParam;
   }, [categories, categoryParam]);
@@ -334,20 +342,6 @@ export function CatalogBrowser({ searchParams }: CatalogBrowserProps) {
       </div>
 
       <ProductSearchBar value={search} onSubmit={handleSearch} />
-
-      {categoriesLoading ? (
-        <CategoryListSkeleton />
-      ) : categoriesError ? (
-        <p className="text-sm text-red-600" role="alert">
-          {categoriesError}
-        </p>
-      ) : (
-        <CategoryList
-          categories={categories}
-          activeCategory={activeCategory}
-          preserveParams={canonicalParams}
-        />
-      )}
 
       <div className="lg:grid lg:grid-cols-[280px_minmax(0,1fr)] lg:gap-8">
         <aside>

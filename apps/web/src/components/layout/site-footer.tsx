@@ -21,6 +21,22 @@ const columns = [
   },
 ];
 
+const footerLinkHrefs: Record<string, string> = {
+  Electronics: '/products?category=electronics',
+  Fashion: '/products?category=fashion',
+  'Home & Living': '/products?category=home-and-kitchen',
+  Beauty: '/products?category=beauty',
+  "Today's deals": '/products?sortBy=price&sortOrder=asc',
+  'Help centre': '/products',
+  'Track your order': '/customer/orders',
+  'Returns & refunds': '/products',
+  'Shipping information': '/products',
+  'About Shopkart': '/products',
+  Careers: '/products',
+  'Sell on Shopkart': '/merchant/dashboard',
+  Press: '/products',
+};
+
 const paymentMethods = ['UPI', 'Visa', 'Mastercard', 'RuPay', 'Net banking', 'COD'];
 
 export function SiteFooter() {
@@ -50,7 +66,10 @@ export function SiteFooter() {
               <ul className="mt-4 space-y-2.5 text-sm">
                 {column.links.map((label) => (
                   <li key={label}>
-                    <Link href={PLACEHOLDER_HREF} className="text-gray-400 transition-colors hover:text-white">
+                    <Link
+                      href={footerLinkHrefs[label] || '/products'}
+                      className="text-gray-400 transition-colors hover:text-white"
+                    >
                       {label}
                     </Link>
                   </li>

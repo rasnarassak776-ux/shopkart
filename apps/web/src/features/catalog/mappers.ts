@@ -22,6 +22,10 @@ const CATEGORY_IMAGES: Record<string, { src: string; alt: string }> = {
     src: unsplash('1586023492125-27b2c045efd7'),
     alt: 'Yellow armchair in a modern living room',
   },
+  'home-living': {
+    src: unsplash('1586023492125-27b2c045efd7'),
+    alt: 'Yellow armchair in a modern living room',
+  },
   beauty: {
     src: unsplash('1612817288484-6f916006741a'),
     alt: 'Skincare bottles arranged with stones',
@@ -60,11 +64,12 @@ export function toProductSummary(product: CatalogProduct): ProductSummary {
 }
 
 export function toCategorySummary(category: CatalogCategory): CategorySummary {
+  const count = category._count?.products ?? 0;
   return {
     slug: category.slug ?? category.id,
     name: category.name,
     href: `/products?category=${category.slug ?? category.id}`,
-    itemCountLabel: `${category._count.products} item${category._count.products === 1 ? '' : 's'}`,
+    itemCountLabel: `${count} item${count === 1 ? '' : 's'}`,
     image: {
       src: CATEGORY_IMAGES[category.slug ?? '']?.src ?? FALLBACK_IMAGE,
       alt: category.name,
