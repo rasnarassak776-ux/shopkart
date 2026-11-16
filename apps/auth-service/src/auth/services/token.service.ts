@@ -1,9 +1,9 @@
-import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
-import { RedisService } from '../../redis/redis.service';
-import { JwtPayload } from '@shopkart/common';
-import * as crypto from 'crypto';
+import { Injectable, UnauthorizedException, Logger } from "@nestjs/common";
+import { JwtService } from "@nestjs/jwt";
+import { ConfigService } from "@nestjs/config";
+import { RedisService } from "../../redis/redis.service";
+import { JwtPayload } from "@shopkart/common";
+import * as crypto from "crypto";
 
 export interface TokenPair {
   accessToken: string;
@@ -34,25 +34,23 @@ export class TokenService {
     private readonly redisService: RedisService,
   ) {
     this.accessSecret =
-      this.configService.get<string>('JWT_ACCESS_SECRET') ||
-      process.env.JWT_ACCESS_SECRET ||
-      'default_jwt_secret';
+      this.configService.getOrThrow<string>("JWT_ACCESS_SECRET");
+
     this.refreshSecret =
-      this.configService.get<string>('JWT_REFRESH_SECRET') ||
-      process.env.JWT_REFRESH_SECRET ||
-      'default_jwt_refresh_secret';
+      this.configService.getOrThrow<string>("JWT_REFRESH_SECRET");
+
     this.accessExpiresIn =
-      this.configService.get<string>('JWT_ACCESS_EXPIRATION') || '15m';
+      this.configService.get<string>("JWT_ACCESS_EXPIRATION") || "15m";
     this.refreshExpiresIn =
-      this.configService.get<string>('JWT_REFRESH_EXPIRATION') || '7d';
+      this.configService.get<string>("JWT_REFRESH_EXPIRATION") || "7d";
     this.issuer =
-      this.configService.get<string>('JWT_ISSUER') ||
+      this.configService.get<string>("JWT_ISSUER") ||
       process.env.JWT_ISSUER ||
-      'shopkart-auth-service';
+      "shopkart-auth-service";
     this.audience =
-      this.configService.get<string>('JWT_AUDIENCE') ||
+      this.configService.get<string>("JWT_AUDIENCE") ||
       process.env.JWT_AUDIENCE ||
-      'shopkart-client';
+      "shopkart-client";
   }
 
   async generateTokenPair(user: {
@@ -121,13 +119,15 @@ export class TokenService {
     try {
       const key = `auth:session:${userId}:${jti}`;
       const tokenHash = crypto
-        .createHash('sha256')
+        .createHash("sha256")
         .update(refreshToken)
-        .digest('hex');
+        .digest("hex");
 
-      await client.set(key, tokenHash, 'EX', this.refreshTtlSeconds);
+      await client.set(key, tokenHash, "EX", this.refreshTtlSeconds);
     } catch (err) {
-      this.logger.warn(`Failed to store refresh token in Redis: ${(err as Error).message}`);
+      this.logger.warn(
+        `Failed to store refresh token in Redis: ${(err as Error).message}`,
+      );
     }
   }
 
@@ -150,7 +150,7 @@ export class TokenService {
         },
       );
     } catch (err) {
-      throw new UnauthorizedException('Invalid or expired refresh token.');
+      throw new UnauthorizedException("Invalid or expired refresh token.");
     }
 
     const client = this.redisService.getClient();
@@ -161,9 +161,9 @@ export class TokenService {
     const sessionKey = `auth:session:${payload.sub}:${payload.jti}`;
     const revokedKey = `auth:revoked:${payload.sub}:${payload.jti}`;
     const incomingHash = crypto
-      .createHash('sha256')
+      .createHash("sha256")
       .update(refreshToken)
-      .digest('hex');
+      .digest("hex");
 
     // Atomic conditional consumption Lua script
     const luaScript = `
@@ -203,22 +203,24 @@ export class TokenService {
       sessionKey,
       revokedKey,
       incomingHash,
-      'rotated',
+      "rotated",
       this.refreshTtlSeconds,
     )) as string;
 
-    if (result === 'REUSED' || result === 'HASH_MISMATCH') {
+    if (result === "REUSED" || result === "HASH_MISMATCH") {
       this.logger.warn(
         `Security Alert: Refresh token reuse detected for user ${payload.sub}, jti ${payload.jti}. Revoking all sessions.`,
       );
       await this.revokeAllUserSessions(payload.sub);
       throw new UnauthorizedException(
-        'Refresh token reuse detected. All sessions revoked.',
+        "Refresh token reuse detected. All sessions revoked.",
       );
     }
 
-    if (result === 'NOT_FOUND') {
-      throw new UnauthorizedException('Refresh token session has been revoked.');
+    if (result === "NOT_FOUND") {
+      throw new UnauthorizedException(
+        "Refresh token session has been revoked.",
+      );
     }
 
     return payload;
@@ -230,7 +232,11 @@ export class TokenService {
     return this.consumeRefreshToken(refreshToken);
   }
 
-  async revokeSession(userId: string, jti: string, reason = 'rotated'): Promise<void> {
+  async revokeSession(
+    userId: string,
+    jti: string,
+    reason = "rotated",
+  ): Promise<void> {
     const client = this.redisService.getClient();
     if (!client) {
       return;
@@ -243,7 +249,7 @@ export class TokenService {
       await client
         .multi()
         .del(activeKey)
-        .set(revokedKey, reason, 'EX', this.refreshTtlSeconds)
+        .set(revokedKey, reason, "EX", this.refreshTtlSeconds)
         .exec();
     } catch (err) {
       this.logger.warn(`Failed to revoke session: ${(err as Error).message}`);
@@ -265,9 +271,16 @@ export class TokenService {
 
       // Invalidate all active access tokens issued at or before this instant (15-min TTL window)
       const nowSec = Math.floor(Date.now() / 1000);
-      await client.set(`auth:revoked_before:${userId}`, nowSec.toString(), 'EX', 900);
+      await client.set(
+        `auth:revoked_before:${userId}`,
+        nowSec.toString(),
+        "EX",
+        900,
+      );
     } catch (err) {
-      this.logger.warn(`Failed to revoke all user sessions: ${(err as Error).message}`);
+      this.logger.warn(
+        `Failed to revoke all user sessions: ${(err as Error).message}`,
+      );
     }
   }
 
@@ -281,7 +294,9 @@ export class TokenService {
       const val = await client.get(`auth:revoked_before:${userId}`);
       return val ? parseInt(val, 10) : null;
     } catch (err) {
-      this.logger.warn(`Failed to check user revocation threshold: ${(err as Error).message}`);
+      this.logger.warn(
+        `Failed to check user revocation threshold: ${(err as Error).message}`,
+      );
       return null;
     }
   }
@@ -298,8 +313,16 @@ export class TokenService {
       const remainingSeconds = decoded?.exp ? decoded.exp - now : 900; // Default 15m
 
       if (remainingSeconds > 0) {
-        const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
-        await client.set(`auth:blacklist:${tokenHash}`, '1', 'EX', remainingSeconds);
+        const tokenHash = crypto
+          .createHash("sha256")
+          .update(token)
+          .digest("hex");
+        await client.set(
+          `auth:blacklist:${tokenHash}`,
+          "1",
+          "EX",
+          remainingSeconds,
+        );
       }
     } catch (err) {
       this.logger.warn(`Failed to blacklist token: ${(err as Error).message}`);
@@ -313,9 +336,9 @@ export class TokenService {
     }
 
     try {
-      const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+      const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
       const isBlacklisted = await client.get(`auth:blacklist:${tokenHash}`);
-      return isBlacklisted === '1';
+      return isBlacklisted === "1";
     } catch (err) {
       this.logger.warn(`Failed to check blacklist: ${(err as Error).message}`);
       return false;
