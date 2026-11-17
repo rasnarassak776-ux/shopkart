@@ -1,0 +1,27 @@
+﻿FROM node:22-bookworm-slim
+
+WORKDIR /app
+
+# Install OpenSSL for Prisma
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends openssl \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY . .
+
+RUN npm ci
+
+# Build shared package
+RUN npm run build --workspace=@shopkart/common
+
+# Generate Prisma Client
+RUN npm run db:generate
+
+# Build Notification Service
+RUN npm run build --workspace=notification-service
+
+ENV NODE_ENV=production
+
+EXPOSE 3050
+
+CMD ["node", "apps/notification-service/dist/main.js"]
