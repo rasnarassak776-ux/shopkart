@@ -44,6 +44,28 @@ export class JwtStrategy extends PassportStrategy(Strategy, "jwt") {
       }
     }
 
+    // Verify that the token belongs to the user's current session generation.
+    if (
+      !payload.sub ||
+      typeof payload.generation !== "number" ||
+      !Number.isSafeInteger(payload.generation) ||
+      payload.generation < 0
+    ) {
+      throw new UnauthorizedException(
+        "Invalid token session. Please sign in again.",
+      );
+    }
+
+    const currentGeneration = await this.tokenService.getSessionGeneration(
+      payload.sub,
+    );
+
+    if (payload.generation !== currentGeneration) {
+      throw new UnauthorizedException(
+        "Session has been revoked. Please sign in again.",
+      );
+    }
+
     // 2. Check user-level revocation timestamp (e.g. from password change, password reset, session wipe)
     if (payload.iat && payload.sub) {
       const revokedBefore = await this.tokenService.getUserRevokedBefore(
