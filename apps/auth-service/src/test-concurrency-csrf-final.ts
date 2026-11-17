@@ -360,7 +360,13 @@ async function runFinalConcurrencyAndCsrfTests() {
       const token = (await newLogin.json()).accessToken;
 
       const decoded = jwt.decode(token, { complete: true }) as any;
-      const secret = process.env.JWT_ACCESS_SECRET || 'default_jwt_secret';
+      const secret = process.env.JWT_ACCESS_SECRET;
+
+if (!secret) {
+  throw new Error(
+    'JWT_ACCESS_SECRET is required for JWT contract validation.',
+  );
+}
       const verified = jwt.verify(token, secret, {
         issuer: 'shopkart-auth-service',
         audience: 'shopkart-client',
