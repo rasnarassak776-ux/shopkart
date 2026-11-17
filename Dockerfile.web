@@ -1,0 +1,22 @@
+
+FROM node:22-bookworm-slim
+
+WORKDIR /app
+
+# Copy project files
+COPY . .
+
+# Install dependencies
+RUN npm ci
+
+# Build shared package
+RUN npm run build --workspace=@shopkart/common
+
+# Build Next.js frontend
+RUN npm run build --workspace=web
+
+ENV NODE_ENV=production
+
+EXPOSE 3000
+
+CMD ["npm", "run", "start", "--workspace=web"]
