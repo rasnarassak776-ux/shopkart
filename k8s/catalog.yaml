@@ -1,0 +1,96 @@
+﻿apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: shopkart-catalog-images
+  namespace: shopkart
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: managed-csi
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shopkart-catalog
+  namespace: shopkart
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: shopkart-catalog
+  template:
+    metadata:
+      labels:
+        app: shopkart-catalog
+    spec:
+      containers:
+        - name: catalog
+          image: shopkartacr2026.azurecr.io/shopkart-catalog:v1
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 3020
+              protocol: TCP
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: CATALOG_SERVICE_PORT
+              value: "3020"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: shopkart-auth-secrets
+                  key: DATABASE_URL
+            - name: JWT_ACCESS_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: shopkart-shared-secrets
+                  key: JWT_ACCESS_SECRET
+            - name: JWT_ISSUER
+              value: "shopkart-auth-service"
+            - name: JWT_AUDIENCE
+              value: "shopkart-client"
+            - name: CATALOG_UPLOAD_DIR
+              value: "/app/storage/product-images"
+            - name: FRONTEND_URL
+              value: "http://localhost:3000"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          volumeMounts:
+            - name: catalog-images
+              mountPath: /app/storage/product-images
+          readinessProbe:
+            httpGet:
+              path: /api/v1/catalog/health
+              port: 3020
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+      volumes:
+        - name: catalog-images
+          persistentVolumeClaim:
+            claimName: shopkart-catalog-images
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: shopkart-catalog
+  namespace: shopkart
+spec:
+  type: ClusterIP
+  selector:
+    app: shopkart-catalog
+  ports:
+    - name: http
+      port: 3020
+      targetPort: 3020
+      protocol: TCP

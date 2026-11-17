@@ -1,0 +1,82 @@
+﻿apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shopkart-cart
+  namespace: shopkart
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: shopkart-cart
+  template:
+    metadata:
+      labels:
+        app: shopkart-cart
+    spec:
+      containers:
+        - name: cart
+          image: shopkartacr2026.azurecr.io/shopkart-cart:v1
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3030
+              name: http
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: CART_SERVICE_PORT
+              value: "3030"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: shopkart-auth-secrets
+                  key: DATABASE_URL
+            - name: JWT_ACCESS_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: shopkart-shared-secrets
+                  key: JWT_ACCESS_SECRET
+            - name: JWT_ISSUER
+              value: "shopkart-auth-service"
+            - name: JWT_AUDIENCE
+              value: "shopkart-client"
+            - name: CATALOG_API_URL
+              value: "http://shopkart-catalog:3020"
+            - name: FRONTEND_URL
+              value: "http://localhost:3000"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: 3030
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: 3030
+            initialDelaySeconds: 60
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: shopkart-cart
+  namespace: shopkart
+spec:
+  type: ClusterIP
+  selector:
+    app: shopkart-cart
+  ports:
+    - name: http
+      port: 3030
+      targetPort: 3030
