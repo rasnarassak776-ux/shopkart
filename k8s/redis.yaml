@@ -1,0 +1,81 @@
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: shopkart-redis-data
+  namespace: shopkart
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: managed-csi
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shopkart-redis
+  namespace: shopkart
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: shopkart-redis
+  template:
+    metadata:
+      labels:
+        app: shopkart-redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          ports:
+            - containerPort: 6379
+          command:
+            - redis-server
+            - --appendonly
+            - "yes"
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+          readinessProbe:
+            exec:
+              command:
+                - redis-cli
+                - ping
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command:
+                - redis-cli
+                - ping
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          volumeMounts:
+            - name: redis-storage
+              mountPath: /data
+      volumes:
+        - name: redis-storage
+          persistentVolumeClaim:
+            claimName: shopkart-redis-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: shopkart-redis
+  namespace: shopkart
+spec:
+  type: ClusterIP
+  selector:
+    app: shopkart-redis
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: 6379
+      protocol: TCP
