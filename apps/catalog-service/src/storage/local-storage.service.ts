@@ -2,12 +2,14 @@ import {
   BadRequestException,
   Injectable,
   Logger,
+  NotFoundException,
   OnModuleInit,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
+import { Readable } from 'stream';
 import {
   StorageService,
   StoredFileInput,
@@ -179,5 +181,29 @@ export class LocalStorageService implements StorageService, OnModuleInit {
     } catch {
       return false;
     }
+  }
+
+  private getMimeType(filename: string): string {
+    const ext = path.extname(filename).toLowerCase();
+    if (ext === '.png') return 'image/png';
+    if (ext === '.webp') return 'image/webp';
+    return 'image/jpeg';
+  }
+
+  async getFileStream(filename: string): Promise<{
+    stream: Readable;
+    mimeType: string;
+  }> {
+    const safeFilename = this.assertSafeFilename(filename);
+    const targetPath = path.join(this.uploadDir, safeFilename);
+
+    if (!fs.existsSync(targetPath)) {
+      throw new NotFoundException('File not found');
+    }
+
+    return {
+      stream: fs.createReadStream(targetPath),
+      mimeType: this.getMimeType(safeFilename),
+    };
   }
 }

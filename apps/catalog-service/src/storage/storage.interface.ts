@@ -1,3 +1,5 @@
+import { Readable } from 'stream';
+
 export interface StoredFileInput {
   buffer: Buffer;
   originalName: string;
@@ -13,8 +15,15 @@ export interface StoredFileResult {
 
 export abstract class StorageService {
   abstract saveFile(file: StoredFileInput): Promise<StoredFileResult>;
-  abstract deleteFile(filename: string): Promise<boolean>;
-  abstract getFilePath(filename: string): string;
-  abstract fileExists(filename: string): Promise<boolean>;
-}
 
+  abstract deleteFile(filename: string): Promise<boolean>;
+
+  abstract getFilePath(filename: string): string;
+
+  abstract fileExists(filename: string): Promise<boolean>;
+
+  abstract getFileStream(filename: string): Promise<{
+    stream: Readable;
+    mimeType: string;
+  }>;
+}
