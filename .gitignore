@@ -42,3 +42,8 @@ storage/product-images/
 
 # TypeScript incremental build info
 *.tsbuildinfo
+
+# Environment backups
+.env.backup
+.env.*.backup
+.env.local.backup
