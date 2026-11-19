@@ -36,13 +36,6 @@ export const presentationCategories: CategorySummary[] = [
     image: { src: unsplash('1556905055-8f358a7a47b2', 600), alt: 'Folded knitwear, denim and a beanie' },
   },
   {
-    slug: 'footwear',
-    name: 'Footwear',
-    href: '/products?search=shoes',
-    itemCountLabel: '850+ items',
-    image: { src: unsplash('1560769629-975ec94e6a86', 600), alt: 'Pair of colourful sneakers' },
-  },
-  {
     slug: 'home-living',
     name: 'Home & Living',
     href: '/products?category=home-and-kitchen',
@@ -55,27 +48,6 @@ export const presentationCategories: CategorySummary[] = [
     href: '/products?category=beauty',
     itemCountLabel: '960+ items',
     image: { src: unsplash('1612817288484-6f916006741a', 600), alt: 'Skincare bottles arranged with stones' },
-  },
-  {
-    slug: 'watches',
-    name: 'Watches',
-    href: '/products?search=watch',
-    itemCountLabel: '420+ items',
-    image: { src: unsplash('1523275335684-37898b6baf30', 600), alt: 'Minimal white wristwatch' },
-  },
-  {
-    slug: 'audio',
-    name: 'Audio',
-    href: '/products?category=electronics',
-    itemCountLabel: '380+ items',
-    image: { src: unsplash('1583394838336-acd977736f90', 600), alt: 'Black over-ear headphones' },
-  },
-  {
-    slug: 'bags-travel',
-    name: 'Bags & Travel',
-    href: '/products?category=fashion',
-    itemCountLabel: '540+ items',
-    image: { src: unsplash('1553062407-98eeb64c6a62', 600), alt: 'Navy everyday backpack' },
   },
 ];
 
