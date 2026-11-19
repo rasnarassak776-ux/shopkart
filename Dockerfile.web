@@ -12,6 +12,19 @@ RUN npm ci
 # Build shared package
 RUN npm run build --workspace=@shopkart/common
 
+# Public API URLs are inlined into the client bundle at build time,
+# so they must be supplied as build args (see .env.example).
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_CATALOG_API_URL
+ARG NEXT_PUBLIC_CART_API_URL
+ARG NEXT_PUBLIC_ORDER_API_URL
+ARG NEXT_PUBLIC_NOTIFICATION_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
+    NEXT_PUBLIC_CATALOG_API_URL=$NEXT_PUBLIC_CATALOG_API_URL \
+    NEXT_PUBLIC_CART_API_URL=$NEXT_PUBLIC_CART_API_URL \
+    NEXT_PUBLIC_ORDER_API_URL=$NEXT_PUBLIC_ORDER_API_URL \
+    NEXT_PUBLIC_NOTIFICATION_API_URL=$NEXT_PUBLIC_NOTIFICATION_API_URL
+
 # Build Next.js frontend
 RUN npm run build --workspace=web
 
