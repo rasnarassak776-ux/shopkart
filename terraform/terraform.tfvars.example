@@ -1,0 +1,2 @@
+resource_group_name = "shopkart-terraform"
+location            = "southeastasia"
