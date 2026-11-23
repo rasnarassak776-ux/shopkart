@@ -304,7 +304,7 @@ export class TokenService {
         'NX'
       )
 
-      if result == 'OK' then
+      if result and result.ok == 'OK' then
         return 'OK'
       end
 
