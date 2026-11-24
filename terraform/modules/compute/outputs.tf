@@ -49,3 +49,21 @@ output "aks_identity_principal_id" {
   description = "Principal ID of the AKS control-plane managed identity"
   value       = azurerm_user_assigned_identity.aks_identity.principal_id
 }
+
+# --------------------------------------------------
+# AKS Kubelet Identity Output
+# --------------------------------------------------
+
+output "aks_kubelet_identity_object_id" {
+  description = "Object ID of the AKS kubelet managed identity"
+  value       = azurerm_kubernetes_cluster.aks.kubelet_identity[0].object_id
+}
+
+# --------------------------------------------------
+# AKS OIDC Issuer Output
+# --------------------------------------------------
+
+output "aks_oidc_issuer_url" {
+  description = "OIDC issuer URL of the AKS cluster"
+  value       = azurerm_kubernetes_cluster.aks.oidc_issuer_url
+}

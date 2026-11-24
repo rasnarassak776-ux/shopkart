@@ -60,6 +60,10 @@ resource "azurerm_kubernetes_cluster" "aks" {
 
   role_based_access_control_enabled = true
 
+  # Enable OIDC issuer and Microsoft Entra Workload Identity
+  oidc_issuer_enabled       = true
+  workload_identity_enabled = true
+
   default_node_pool {
     name                 = "systempool"
     type                 = "VirtualMachineScaleSets"
