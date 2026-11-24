@@ -1,2 +1,81 @@
+
+# ==================================================
+# 1. Common Configuration
+# ==================================================
+
 resource_group_name = "shopkart-terraform"
 location            = "southeastasia"
+
+tags = {
+  Project     = "ShopKart"
+  Environment = "terraform"
+  ManagedBy   = "Terraform"
+}
+
+# ==================================================
+# 2. Foundation Configuration
+# ==================================================
+
+acr_name = "shopkarttfacr2026"
+
+# ==================================================
+# 3. Data Configuration
+# ==================================================
+
+postgresql_server_name    = "shopkart-tf-postgres-2026"
+postgresql_database_name  = "shopkart"
+postgresql_admin_username = "shopkartadmin"
+
+# Supply the password securely using
+# TF_VAR_postgresql_admin_password.
+# Never commit the actual password to GitHub.
+
+postgresql_version               = "16"
+postgresql_sku_name              = "B_Standard_B1ms"
+postgresql_storage_mb            = 32768
+postgresql_backup_retention_days = 7
+
+storage_account_name     = "shopkarttfstorage2026"
+storage_account_tier     = "Standard"
+storage_replication_type = "LRS"
+blob_container_name      = "shopkart-data"
+
+# ==================================================
+# 4. Compute Configuration
+# ==================================================
+
+# Provisional network ranges - pending Member 3 review.
+
+vnet_name               = "shopkart-tf-vnet"
+vnet_address_space      = ["10.20.0.0/16"]
+subnet_name             = "aks-subnet"
+subnet_address_prefixes = ["10.20.1.0/24"]
+
+aks_cluster_name  = "shopkart-aks-terraform"
+aks_dns_prefix    = "shopkart-aks-terraform"
+aks_identity_name = "shopkart-tf-aks-identity"
+
+# Provisional compute settings - pending cost and quota review.
+
+node_count = 2
+vm_size    = "Standard_D2s_v5"
+min_count  = 2
+max_count  = 3
+
+pod_cidr       = "10.244.0.0/16"
+service_cidr   = "10.30.0.0/16"
+dns_service_ip = "10.30.0.10"
+
+# ==================================================
+# 5. Security Configuration
+# ==================================================
+
+key_vault_name        = "shopkart-tf-kv-2026"
+auth_identity_name    = "shopkart-tf-auth-identity"
+catalog_identity_name = "shopkart-tf-catalog-identity"
+
+# Enable only after application permission requirements
+# are confirmed by Member 4.
+
+auth_key_vault_secrets_access    = false
+catalog_key_vault_secrets_access = false
