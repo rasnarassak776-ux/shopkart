@@ -40,6 +40,11 @@ storage_account_tier     = "Standard"
 storage_replication_type = "LRS"
 blob_container_name      = "shopkart-data"
 
+# Delegated subnet for PostgreSQL private (VNet-integrated) access.
+# Must not overlap the AKS subnet (10.20.1.0/24) or pod/service CIDRs.
+
+delegated_subnet_address_prefix = "10.20.2.0/24"
+
 # ==================================================
 # 4. Compute Configuration
 # ==================================================

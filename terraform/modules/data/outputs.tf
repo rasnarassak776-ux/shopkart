@@ -38,3 +38,13 @@ output "blob_container_id" {
   description = "Blob Container resource ID"
   value       = azurerm_storage_container.shopkart.id
 }
+
+output "postgresql_delegated_subnet_id" {
+  description = "Resource ID of the delegated PostgreSQL subnet"
+  value       = azurerm_subnet.postgres_delegated.id
+}
+
+output "postgresql_private_dns_zone_id" {
+  description = "Resource ID of the privatelink.postgres.database.azure.com DNS zone"
+  value       = azurerm_private_dns_zone.postgres.id
+}

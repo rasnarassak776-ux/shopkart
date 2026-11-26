@@ -86,6 +86,11 @@ variable "max_count" {
   default     = 3
 }
 
+variable "acr_id" {
+  description = "Resource ID of the Azure Container Registry that AKS pulls images from"
+  type        = string
+}
+
 variable "tags" {
   description = "Tags applied to Compute resources"
   type        = map(string)

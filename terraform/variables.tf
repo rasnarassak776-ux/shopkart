@@ -101,6 +101,12 @@ variable "blob_container_name" {
   default     = "shopkart-data"
 }
 
+variable "delegated_subnet_address_prefix" {
+  description = "Address prefix for the PostgreSQL delegated subnet inside the AKS VNet"
+  type        = string
+  default     = "10.20.2.0/24"
+}
+
 # ==================================================
 # 4. Compute Module
 # ==================================================

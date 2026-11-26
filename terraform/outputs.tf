@@ -67,6 +67,16 @@ output "blob_container_id" {
   value       = module.data.blob_container_id
 }
 
+output "postgresql_delegated_subnet_id" {
+  description = "Resource ID of the delegated PostgreSQL subnet"
+  value       = module.data.postgresql_delegated_subnet_id
+}
+
+output "postgresql_private_dns_zone_id" {
+  description = "Resource ID of the privatelink.postgres.database.azure.com DNS zone"
+  value       = module.data.postgresql_private_dns_zone_id
+}
+
 # ==================================================
 # 3. Compute Module Outputs
 # ==================================================

@@ -15,7 +15,13 @@ resource "azurerm_postgresql_flexible_server" "shopkart" {
   backup_retention_days        = var.postgresql_backup_retention_days
   geo_redundant_backup_enabled = false
 
-  public_network_access_enabled = true
+  auto_grow_enabled = true
+
+  public_network_access_enabled = false
+  delegated_subnet_id           = azurerm_subnet.postgres_delegated.id
+  private_dns_zone_id           = azurerm_private_dns_zone.postgres.id
+
+  tags = var.tags
 }
 
 # ShopKart PostgreSQL Database
@@ -38,6 +44,8 @@ resource "azurerm_storage_account" "shopkart" {
 
   min_tls_version                 = "TLS1_2"
   allow_nested_items_to_be_public = false
+
+  tags = var.tags
 }
 
 # Azure Blob Container
@@ -45,4 +53,48 @@ resource "azurerm_storage_container" "shopkart" {
   name                  = var.blob_container_name
   storage_account_id    = azurerm_storage_account.shopkart.id
   container_access_type = "private"
+}
+
+# --------------------------------------------------
+# PostgreSQL private networking (VNet integration)
+# --------------------------------------------------
+
+# Delegated subnet for PostgreSQL Flexible Server VNet integration.
+# The AKS node subnet cannot be delegated to PostgreSQL, so a
+# separate subnet is required inside the AKS VNet.
+resource "azurerm_subnet" "postgres_delegated" {
+  name                 = "postgres-delegated-subnet"
+  resource_group_name  = var.resource_group_name
+  virtual_network_name = var.vnet_name
+
+  address_prefixes = [var.delegated_subnet_address_prefix]
+
+  delegation {
+    name = "postgresql-delegation"
+
+    service_delegation {
+      name    = "Microsoft.DBforPostgreSQL/flexibleServers"
+      actions = ["Microsoft.Network/virtualNetworks/subnets/join/action"]
+    }
+  }
+}
+
+# Private DNS zone so AKS pods resolve the PostgreSQL FQDN
+# to the private VNet-integrated address.
+resource "azurerm_private_dns_zone" "postgres" {
+  name                = "privatelink.postgres.database.azure.com"
+  resource_group_name = var.resource_group_name
+
+  tags = var.tags
+}
+
+resource "azurerm_private_dns_zone_virtual_network_link" "postgres" {
+  name                  = "postgres-dns-vnet-link"
+  resource_group_name   = var.resource_group_name
+  private_dns_zone_name = azurerm_private_dns_zone.postgres.name
+  virtual_network_id    = var.vnet_id
+
+  registration_enabled = false
+
+  tags = var.tags
 }

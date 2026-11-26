@@ -104,3 +104,18 @@ resource "azurerm_kubernetes_cluster" "aks" {
     azurerm_role_assignment.aks_subnet_network_contributor
   ]
 }
+
+# --------------------------------------------------
+# 6. ACR Pull Role Assignment
+# --------------------------------------------------
+
+# Allows AKS nodes (kubelet identity) to pull images from the
+# Foundation module's Azure Container Registry.
+resource "azurerm_role_assignment" "aks_acr_pull" {
+  scope                = var.acr_id
+  role_definition_name = "AcrPull"
+  principal_id         = azurerm_kubernetes_cluster.aks.kubelet_identity[0].object_id
+  principal_type       = "ServicePrincipal"
+
+  skip_service_principal_aad_check = true
+}

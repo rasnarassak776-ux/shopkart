@@ -34,6 +34,11 @@ module "data" {
   storage_account_tier     = var.storage_account_tier
   storage_replication_type = var.storage_replication_type
   blob_container_name      = var.blob_container_name
+
+  vnet_id                         = module.compute.vnet_id
+  vnet_name                       = module.compute.vnet_name
+  delegated_subnet_address_prefix = var.delegated_subnet_address_prefix
+  tags                            = var.tags
 }
 
 # ==================================================
@@ -59,6 +64,8 @@ module "compute" {
   vm_size    = var.vm_size
   min_count  = var.min_count
   max_count  = var.max_count
+
+  acr_id = module.foundation.acr_id
 
   pod_cidr       = var.pod_cidr
   service_cidr   = var.service_cidr

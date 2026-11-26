@@ -82,3 +82,24 @@ variable "blob_container_name" {
   type        = string
   default     = "shopkart-data"
 }
+
+variable "vnet_id" {
+  description = "Resource ID of the AKS virtual network for PostgreSQL private access"
+  type        = string
+}
+
+variable "vnet_name" {
+  description = "Name of the AKS virtual network containing the delegated PostgreSQL subnet"
+  type        = string
+}
+
+variable "delegated_subnet_address_prefix" {
+  description = "Address prefix for the PostgreSQL delegated subnet inside the AKS VNet"
+  type        = string
+}
+
+variable "tags" {
+  description = "Common tags for supported Azure resources"
+  type        = map(string)
+  default     = {}
+}
