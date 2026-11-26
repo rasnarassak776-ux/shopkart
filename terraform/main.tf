@@ -35,6 +35,7 @@ module "data" {
   storage_replication_type = var.storage_replication_type
   blob_container_name      = var.blob_container_name
 
+
   vnet_id                         = module.compute.vnet_id
   vnet_name                       = module.compute.vnet_name
   delegated_subnet_address_prefix = var.delegated_subnet_address_prefix
