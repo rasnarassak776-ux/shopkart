@@ -75,7 +75,7 @@ dns_service_ip = "10.30.0.10"
 # 5. Security Configuration
 # ==================================================
 
-key_vault_name        = "shopkart-tf-kv-2026"
+key_vault_name        = "shopkart-tf-kv-ea-2026"
 auth_identity_name    = "shopkart-tf-auth-identity"
 catalog_identity_name = "shopkart-tf-catalog-identity"
 
@@ -83,7 +83,9 @@ catalog_identity_name = "shopkart-tf-catalog-identity"
 # are confirmed by Member 4. These flags gate the Key Vault
 # and Blob role assignments used by the workload identities
 # deployed through the k8s/terraform Kustomize overlay.
+# Catalog Blob access is enabled for the intended deployment;
+# set catalog_blob_storage_access back to false to revoke it.
 
 auth_key_vault_secrets_access    = false
 catalog_key_vault_secrets_access = false
-catalog_blob_storage_access      = false
+catalog_blob_storage_access      = true

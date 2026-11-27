@@ -36,7 +36,7 @@ spec:
       serviceAccountName: shopkart-catalog-sa
       containers:
         - name: catalog
-          image: shopkartacr2026.azurecr.io/shopkart-catalog:v1
+          image: shopkarttfacr2026.azurecr.io/shopkart-catalog:v1
           imagePullPolicy: Always
           ports:
             - name: http
@@ -63,6 +63,12 @@ spec:
               value: "shopkart-client"
             - name: CATALOG_UPLOAD_DIR
               value: "/app/storage/product-images"
+            - name: CATALOG_STORAGE_PROVIDER
+              value: "azure"
+            - name: AZURE_STORAGE_ACCOUNT_NAME
+              value: "shopkarttfstorage2026"
+            - name: AZURE_STORAGE_CONTAINER
+              value: "shopkart-data"
             - name: FRONTEND_URL
               value: "http://localhost:3000"
           resources:
