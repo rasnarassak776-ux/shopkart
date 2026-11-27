@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shopkart-web
+  namespace: shopkart
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: shopkart-web
+  template:
+    metadata:
+      labels:
+        app: shopkart-web
+    spec:
+      containers:
+        - name: web
+          image: shopkarttfacr2026.azurecr.io/shopkart-web:v1
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: PORT
+              value: "3000"
+            - name: INTERNAL_AUTH_URL
+              value: "http://shopkart-auth:3010"
+            - name: INTERNAL_CATALOG_URL
+              value: "http://shopkart-catalog:3020"
+            - name: INTERNAL_CART_URL
+              value: "http://shopkart-cart:3030"
+            - name: INTERNAL_ORDER_URL
+              value: "http://shopkart-order:3040"
+            - name: INTERNAL_NOTIFICATION_URL
+              value: "http://shopkart-notification:3050"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: shopkart-web
+  namespace: shopkart
+spec:
+  type: ClusterIP
+  selector:
+    app: shopkart-web
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000
+      protocol: TCP

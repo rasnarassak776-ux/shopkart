@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shopkart-notification
+  namespace: shopkart
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: shopkart-notification
+  template:
+    metadata:
+      labels:
+        app: shopkart-notification
+    spec:
+      containers:
+        - name: notification
+          image: shopkarttfacr2026.azurecr.io/shopkart-notification:v1
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3050
+              name: http
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: NOTIFICATION_SERVICE_PORT
+              value: "3050"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: shopkart-auth-secrets
+                  key: DATABASE_URL
+            - name: JWT_ACCESS_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: shopkart-shared-secrets
+                  key: JWT_ACCESS_SECRET
+            - name: JWT_ISSUER
+              value: "shopkart-auth-service"
+            - name: JWT_AUDIENCE
+              value: "shopkart-client"
+            - name: NOTIFICATION_INTERNAL_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: shopkart-shared-secrets
+                  key: NOTIFICATION_INTERNAL_API_KEY
+            - name: FRONTEND_URL
+              value: "http://localhost:3000"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: 3050
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            tcpSocket:
+              port: 3050
+            initialDelaySeconds: 45
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: shopkart-notification
+  namespace: shopkart
+spec:
+  type: ClusterIP
+  selector:
+    app: shopkart-notification
+  ports:
+    - name: http
+      port: 3050
+      targetPort: 3050
+      protocol: TCP
