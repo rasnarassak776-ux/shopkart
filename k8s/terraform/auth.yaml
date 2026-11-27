@@ -23,7 +23,7 @@ spec:
       serviceAccountName: shopkart-auth-sa
       containers:
         - name: auth
-          image: shopkartacr2026.azurecr.io/shopkart-auth:v1
+          image: shopkarttfacr2026.azurecr.io/shopkart-auth:v1
           imagePullPolicy: Always
           ports:
             - name: http
