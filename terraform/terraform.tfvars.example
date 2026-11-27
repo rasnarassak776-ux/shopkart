@@ -4,7 +4,7 @@
 # ==================================================
 
 resource_group_name = "shopkart-terraform"
-location            = "southeastasia"
+location            = "eastasia"
 
 tags = {
   Project     = "ShopKart"
@@ -65,7 +65,7 @@ aks_identity_name = "shopkart-tf-aks-identity"
 node_count = 2
 vm_size    = "Standard_D2s_v5"
 min_count  = 2
-max_count  = 3
+max_count  = 2
 
 pod_cidr       = "10.244.0.0/16"
 service_cidr   = "10.30.0.0/16"

@@ -167,7 +167,7 @@ variable "min_count" {
 variable "max_count" {
   description = "Maximum AKS autoscaling node count"
   type        = number
-  default     = 3
+  default     = 2
 }
 
 variable "pod_cidr" {

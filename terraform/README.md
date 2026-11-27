@@ -11,7 +11,7 @@ The Terraform-managed environment is separate from the existing infrastructure. 
 | Configuration | Value |
 |---|---|
 | New Resource Group | shopkart-terraform (proposed) |
-| Deployment Region | southeastasia (proposed, pending availability verification) |
+| Deployment Region | eastasia (AKS feasibility verified; PostgreSQL verification pending) |
 | Terraform Version | 1.17.2 (tested) |
 | AzureRM Provider | 4.81.0 (tested) |
 | Remote State | Azure Blob Storage |
