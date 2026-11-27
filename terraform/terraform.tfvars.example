@@ -80,7 +80,9 @@ auth_identity_name    = "shopkart-tf-auth-identity"
 catalog_identity_name = "shopkart-tf-catalog-identity"
 
 # Enable only after application permission requirements
-# are confirmed by Member 4.
+# are confirmed by Member 4. These flags gate the Key Vault
+# and Blob role assignments used by the workload identities
+# deployed through the k8s/terraform Kustomize overlay.
 
 auth_key_vault_secrets_access    = false
 catalog_key_vault_secrets_access = false
