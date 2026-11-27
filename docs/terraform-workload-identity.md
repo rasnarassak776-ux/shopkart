@@ -30,11 +30,12 @@ The federated subjects are:
 The Kubernetes manifests intentionally contain no environment-specific client
 ID. After Terraform creates the identities, run
 `powershell -ExecutionPolicy Bypass -File scripts/configure-workload-identity.ps1`
-from the repository root. The script reads the Terraform identity client-ID
-and AKS cluster name outputs, verifies the current kubectl context targets
-that cluster, applies the `k8s/terraform` Kustomize overlay, and annotates
-the ServiceAccounts. It is a deployment-time command and was not run during
-this integration.
+from the repository root. The script uses the dedicated Terraform Kubernetes
+configuration (`$HOME\.kube\shopkart-terraform-config`), reads the Terraform identity
+client-ID and AKS cluster name outputs, verifies an exact match against the current
+kubectl context, creates or updates the target namespace and ServiceAccounts, and
+annotates the ServiceAccounts before application workloads are deployed. It does
+not deploy the application overlay.
 
 ## Catalog storage
 
