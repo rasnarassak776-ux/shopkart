@@ -25,3 +25,29 @@ npm-debug.log*
 
 .DS_Store
 Thumbs.db
+
+# Terraform infrastructure and sensitive deployment files
+terraform/
+**/.terraform/
+**/*.tfstate
+**/*.tfstate.*
+**/*.tfvars
+**/*.tfvars.json
+**/*.tfplan
+**/*.tfplan.json
+**/tfplan
+
+# Kubernetes credentials
+.kube/
+**/.kube/
+**/kubeconfig
+**/kubeconfig.*
+
+# Nested environment files
+**/.env
+**/.env.*
+!**/.env.example
+
+# Local application data and build cache
+storage/
+**/*.tsbuildinfo
