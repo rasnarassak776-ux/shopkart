@@ -17,6 +17,7 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@types/jest": "^29.5.14",
     "@types/node": "^22.10.1",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
@@ -28,7 +29,12 @@
     "typescript": "^5.7.3"
   },
   "jest": {
-    "moduleFileExtensions": ["js", "json", "ts", "tsx"],
+    "moduleFileExtensions": [
+      "js",
+      "json",
+      "ts",
+      "tsx"
+    ],
     "rootDir": "src",
     "testRegex": ".*\\.spec\\.(t|j)sx?$",
     "transform": {
