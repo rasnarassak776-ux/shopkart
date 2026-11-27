@@ -4,6 +4,15 @@ The Terraform-managed AKS cluster provides the OIDC issuer used by the
 `azurerm_federated_identity_credential` resources. The new cluster issuer is
 not hardcoded.
 
+## Kubernetes manifests
+
+The Terraform deployment consumes the Auth and Catalog workloads through the
+Kustomize overlay in `k8s/terraform/`. The overlay renders the same
+ServiceAccounts, workload identity pod labels, image references, and
+environment variables as the Epic 2 manifests under `k8s/`, which remain
+unchanged. Render the overlay locally with `kubectl kustomize ./k8s/terraform`
+and review the output before any deployment.
+
 ## ServiceAccounts
 
 | Service | Namespace | ServiceAccount |
@@ -19,9 +28,9 @@ The federated subjects are:
 The Kubernetes manifests intentionally contain no environment-specific client
 ID. After Terraform creates the identities, run
 `powershell -ExecutionPolicy Bypass -File scripts/configure-workload-identity.ps1`
-from the repository root. The script reads only the Terraform client-ID outputs
-and annotates the ServiceAccounts. It is a deployment-time command and was not
-run during this integration.
+from the repository root. The script reads only the Terraform client-ID outputs,
+applies the `k8s/terraform` Kustomize overlay, and annotates the ServiceAccounts.
+It is a deployment-time command and was not run during this integration.
 
 ## Catalog storage
 

@@ -1,0 +1,92 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: shopkart-auth-sa
+  namespace: shopkart
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shopkart-auth
+  namespace: shopkart
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: shopkart-auth
+  template:
+    metadata:
+      labels:
+        app: shopkart-auth
+        azure.workload.identity/use: "true"
+    spec:
+      serviceAccountName: shopkart-auth-sa
+      containers:
+        - name: auth
+          image: shopkartacr2026.azurecr.io/shopkart-auth:v1
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 3010
+              protocol: TCP
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: AUTH_SERVICE_PORT
+              value: "3010"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: shopkart-auth-secrets
+                  key: DATABASE_URL
+            - name: JWT_ACCESS_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: shopkart-auth-secrets
+                  key: JWT_ACCESS_SECRET
+            - name: JWT_REFRESH_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: shopkart-auth-secrets
+                  key: JWT_REFRESH_SECRET
+            - name: NOTIFICATION_INTERNAL_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: shopkart-auth-secrets
+                  key: NOTIFICATION_INTERNAL_API_KEY
+            - name: REDIS_URL
+              value: "redis://shopkart-redis:6379"
+            - name: NOTIFICATION_SERVICE_URL
+              value: "http://shopkart-notification:3050"
+            - name: FRONTEND_URL
+              value: "http://localhost:3000"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: 3010
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: shopkart-auth
+  namespace: shopkart
+spec:
+  type: ClusterIP
+  selector:
+    app: shopkart-auth
+  ports:
+    - name: http
+      port: 3010
+      targetPort: 3010
+      protocol: TCP

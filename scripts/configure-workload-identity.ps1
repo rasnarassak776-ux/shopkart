@@ -1,8 +1,7 @@
 $ErrorActionPreference = "Stop"
 
 $terraformDir = Join-Path $PSScriptRoot "..\terraform"
-$authManifest = Join-Path $PSScriptRoot "..\k8s\auth.yaml"
-$catalogManifest = Join-Path $PSScriptRoot "..\k8s\catalog.yaml"
+$k8sOverlay = Join-Path $PSScriptRoot "..\k8s\terraform"
 
 Push-Location $terraformDir
 try {
@@ -17,8 +16,7 @@ if ([string]::IsNullOrWhiteSpace($authClientId) -or [string]::IsNullOrWhiteSpace
     throw "Terraform identity client ID outputs must not be empty."
 }
 
-kubectl apply -f $authManifest
-kubectl apply -f $catalogManifest
+kubectl apply -k $k8sOverlay
 
 kubectl annotate serviceaccount shopkart-auth-sa -n shopkart `
     azure.workload.identity/client-id=$authClientId --overwrite

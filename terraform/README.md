@@ -168,13 +168,15 @@ All changes should be reviewed through pull requests. Coordinate changes to shar
 - Default workspace verified.
 - No tracked resource instances found in the remote state during verification.
 - Integrated Terraform validation passed at commit 0b7a425.
+- Security module workload identity integration completed, including federated
+  identity credentials and the `k8s/terraform` Kustomize overlay for the Auth
+  and Catalog workloads.
 
 ## Pending Deployment Requirements
 
 - Confirm PostgreSQL SKU availability.
 - Confirm AKS VM SKU availability and CPU quotas.
 - Finalize deployment region and resource sizing.
-- Complete final Security and workload identity integration.
 - Confirm an available Key Vault name or approved recovery strategy.
 - Verify backend permissions for authorized team members.
 - Review final integrated Terraform configuration.
