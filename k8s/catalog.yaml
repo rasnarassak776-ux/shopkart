@@ -1,4 +1,10 @@
 ﻿apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: shopkart-catalog-sa
+  namespace: shopkart
+---
+apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: shopkart-catalog-images
@@ -25,7 +31,9 @@ spec:
     metadata:
       labels:
         app: shopkart-catalog
+        azure.workload.identity/use: "true"
     spec:
+      serviceAccountName: shopkart-catalog-sa
       containers:
         - name: catalog
           image: shopkartacr2026.azurecr.io/shopkart-catalog:v1

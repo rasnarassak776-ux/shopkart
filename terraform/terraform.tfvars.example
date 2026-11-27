@@ -84,3 +84,4 @@ catalog_identity_name = "shopkart-tf-catalog-identity"
 
 auth_key_vault_secrets_access    = false
 catalog_key_vault_secrets_access = false
+catalog_blob_storage_access      = false

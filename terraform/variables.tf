@@ -215,3 +215,9 @@ variable "catalog_key_vault_secrets_access" {
   type        = bool
   default     = false
 }
+
+variable "catalog_blob_storage_access" {
+  description = "Enable Blob Data Contributor access for the Catalog managed identity"
+  type        = bool
+  default     = false
+}

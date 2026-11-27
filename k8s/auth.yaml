@@ -1,4 +1,10 @@
 
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: shopkart-auth-sa
+  namespace: shopkart
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -13,7 +19,9 @@ spec:
     metadata:
       labels:
         app: shopkart-auth
+        azure.workload.identity/use: "true"
     spec:
+      serviceAccountName: shopkart-auth-sa
       containers:
         - name: auth
           image: shopkartacr2026.azurecr.io/shopkart-auth:v1
