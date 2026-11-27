@@ -22,6 +22,8 @@ resource "azurerm_postgresql_flexible_server" "shopkart" {
   private_dns_zone_id           = azurerm_private_dns_zone.postgres.id
 
   tags = var.tags
+
+  depends_on = [azurerm_private_dns_zone_virtual_network_link.postgres]
 }
 
 # ShopKart PostgreSQL Database
