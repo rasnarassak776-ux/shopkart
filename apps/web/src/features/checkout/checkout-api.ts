@@ -12,7 +12,11 @@ import type {
 } from './types';
 
 const ORDER_API_URL = (
-  process.env.NEXT_PUBLIC_ORDER_API_URL || 'http://localhost:3040'
+  typeof window === 'undefined'
+    ? (process.env.INTERNAL_ORDER_URL || process.env.ORDER_API_URL || 'http://shopkart-order:3040')
+    : (process.env.NEXT_PUBLIC_ORDER_API_URL !== undefined
+        ? process.env.NEXT_PUBLIC_ORDER_API_URL
+        : 'http://localhost:3040')
 ).replace(/\/$/, '');
 
 /**

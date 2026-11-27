@@ -6,7 +6,11 @@ import type {
 } from './types';
 
 const NOTIFICATION_API_URL = (
-  process.env.NEXT_PUBLIC_NOTIFICATION_API_URL || 'http://localhost:3050'
+  typeof window === 'undefined'
+    ? (process.env.INTERNAL_NOTIFICATION_URL || process.env.NOTIFICATION_API_URL || 'http://shopkart-notification:3050')
+    : (process.env.NEXT_PUBLIC_NOTIFICATION_API_URL !== undefined
+        ? process.env.NEXT_PUBLIC_NOTIFICATION_API_URL
+        : 'http://localhost:3050')
 ).replace(/\/$/, '');
 
 function buildQuery(query: QueryNotificationsDto): string {

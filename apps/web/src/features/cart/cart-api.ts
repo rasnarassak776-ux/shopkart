@@ -2,7 +2,11 @@ import { apiClient } from '@/lib/api-client';
 import type { AddToCartDto, Cart, UpdateCartItemDto } from './types';
 
 const CART_API_URL = (
-  process.env.NEXT_PUBLIC_CART_API_URL || 'http://localhost:3030'
+  typeof window === 'undefined'
+    ? (process.env.INTERNAL_CART_URL || process.env.CART_API_URL || 'http://shopkart-cart:3030')
+    : (process.env.NEXT_PUBLIC_CART_API_URL !== undefined
+        ? process.env.NEXT_PUBLIC_CART_API_URL
+        : 'http://localhost:3030')
 ).replace(/\/$/, '');
 
 /**

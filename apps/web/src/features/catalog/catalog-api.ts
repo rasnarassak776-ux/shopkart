@@ -17,7 +17,11 @@ export type {
 } from './types';
 
 export const CATALOG_API_URL = (
-  process.env.NEXT_PUBLIC_CATALOG_API_URL || 'http://localhost:3020'
+  typeof window === 'undefined'
+    ? (process.env.INTERNAL_CATALOG_URL || process.env.CATALOG_API_URL || 'http://shopkart-catalog:3020')
+    : (process.env.NEXT_PUBLIC_CATALOG_API_URL !== undefined
+        ? process.env.NEXT_PUBLIC_CATALOG_API_URL
+        : 'http://localhost:3020')
 ).replace(/\/$/, '');
 
 function buildQuery(query: CatalogProductQuery): string {

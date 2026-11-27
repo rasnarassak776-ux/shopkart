@@ -49,10 +49,22 @@ describe('Image URL Resolution & Next.js Rewrite Configuration', () => {
       expect(configText).toContain("source: '/api/v1/catalog/images/:path*'");
       // Verifies destination points to catalog API without double slashes
       expect(configText).toContain('${catalogApiUrl}/api/v1/catalog/images/:path*');
-      // Verifies fallback catalog URL is defined
-      expect(configText).toContain("process.env.NEXT_PUBLIC_CATALOG_API_URL || 'http://localhost:3020'");
+      // Verifies catalog API URL configuration supports local default
+      expect(configText).toContain("'http://localhost:3020'");
       // Verifies remotePatterns is preserved
       expect(configText).toContain('images.unsplash.com');
+    });
+
+    it('defines explicit fallback logic supporting local, Epic 2, and Terraform environments', () => {
+      const configPath = path.resolve(__dirname, '../../../next.config.mjs');
+      const configText = fs.readFileSync(configPath, 'utf8');
+
+      // Verifies that NEXT_PUBLIC_CATALOG_API_URL is checked with proper fallback to http://localhost:3020
+      expect(configText).toMatch(/process\.env\.INTERNAL_CATALOG_URL/);
+      expect(configText).toMatch(/process\.env\.NEXT_PUBLIC_CATALOG_API_URL/);
+      expect(configText).toMatch(/'http:\/\/localhost:3020'/);
+      // Ensures the fallback logic handles empty string correctly
+      expect(configText).toContain("process.env.NEXT_PUBLIC_CATALOG_API_URL !== ''");
     });
   });
 });

@@ -48,7 +48,11 @@ export interface RequestOptions extends RequestInit {
 }
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3010';
+  typeof window === 'undefined'
+    ? (process.env.INTERNAL_AUTH_URL || process.env.AUTH_API_URL || 'http://shopkart-auth:3010')
+    : (process.env.NEXT_PUBLIC_API_URL !== undefined
+        ? process.env.NEXT_PUBLIC_API_URL
+        : 'http://localhost:3010');
 
 export async function apiClient<T = any>(
   endpoint: string,
