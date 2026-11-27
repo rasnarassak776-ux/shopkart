@@ -81,8 +81,12 @@ module "security" {
   auth_identity_name    = var.auth_identity_name
   catalog_identity_name = var.catalog_identity_name
 
+  aks_oidc_issuer_url = module.compute.aks_oidc_issuer_url
+
   auth_key_vault_secrets_access    = var.auth_key_vault_secrets_access
   catalog_key_vault_secrets_access = var.catalog_key_vault_secrets_access
+  catalog_blob_container_id        = module.data.blob_container_id
+  catalog_blob_storage_access      = var.catalog_blob_storage_access
 
   tags = var.tags
 }

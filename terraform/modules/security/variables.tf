@@ -45,3 +45,20 @@ variable "catalog_key_vault_secrets_access" {
   type        = bool
   default     = false
 }
+
+variable "aks_oidc_issuer_url" {
+  description = "OIDC issuer URL from the Terraform-managed AKS cluster"
+  type        = string
+}
+
+variable "catalog_blob_container_id" {
+  description = "Blob container resource ID for Catalog access"
+  type        = string
+  default     = ""
+}
+
+variable "catalog_blob_storage_access" {
+  description = "Whether the Catalog identity requires Blob Data Contributor access"
+  type        = bool
+  default     = false
+}
